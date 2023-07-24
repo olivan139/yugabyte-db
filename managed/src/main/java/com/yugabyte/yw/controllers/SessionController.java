@@ -33,6 +33,8 @@ import com.yugabyte.yw.common.Util;
 import com.yugabyte.yw.common.ValidatingFormFactory;
 import com.yugabyte.yw.common.alerts.AlertConfigurationService;
 import com.yugabyte.yw.common.alerts.AlertDestinationService;
+import com.yugabyte.yw.common.config.GlobalConfKeys;
+import com.yugabyte.yw.common.config.RuntimeConfGetter;
 import com.yugabyte.yw.common.config.RuntimeConfigFactory;
 import com.yugabyte.yw.common.password.PasswordPolicyService;
 import com.yugabyte.yw.common.user.UserService;
@@ -69,6 +71,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -129,6 +132,8 @@ public class SessionController extends AbstractPlatformController {
   @Inject private TokenAuthenticator tokenAuthenticator;
 
   @Inject private LoginHandler loginHandler;
+
+  @Inject private RuntimeConfGetter confGetter;
 
   private final ApiHelper apiHelper;
 
@@ -421,13 +426,18 @@ public class SessionController extends AbstractPlatformController {
                 .build());
   }
 
-  
   @ApiOperation(value = "UI_ONLY", hidden = true)
   @Secure(clients = "OidcClient")
   public Result fetchJWTToken(Http.Request request) {
+    if (!confGetter.getGlobalConf(GlobalConfKeys.oidcFeatureEnhancements)) {
+      throw new PlatformServiceException(
+          BAD_REQUEST, "yb.security.oidc_feature_enhancements flag is not enabled.");
+    }
+
     String email = thirdPartyLoginHandler.getEmailFromCtx(request);
     String idToken = "";
-    String preferredUsername = ""; 
+    String preferredUsername = "";
+    Instant expirationTime = null;
     try {
       // Persist the JWT auth token in case of successful login.
       CommonProfile profile = thirdPartyLoginHandler.getProfile(request);
@@ -437,23 +447,34 @@ public class SessionController extends AbstractPlatformController {
       if (profile.containsAttribute("preferred_username")) {
         preferredUsername = (String) profile.getAttribute("preferred_username");
       }
+      if (profile.containsAttribute("expiration")) {
+        String expTime = (String) profile.getAttribute("expiration");
+        expirationTime = Instant.parse(expTime);
+      }
     } catch (Exception e) {
       // Pass
       log.error(String.format("Failed to retrieve user profile %s", e.getMessage()));
     }
+    Duration maxAgeInSeconds = Duration.ofMinutes(5L);
+    if (expirationTime != null) {
+      maxAgeInSeconds = Duration.between(expirationTime, Instant.now());
+    }
 
-    return thirdPartyLoginHandler.redirectTo(request.queryString("orig_url").orElse(null))
+    return thirdPartyLoginHandler
+        .redirectTo(request.queryString("orig_url").orElse(null))
         .withCookies(
             Cookie.builder("jwt_token", idToken)
                 .withSecure(request.secure())
                 .withHttpOnly(false)
+                .withMaxAge(maxAgeInSeconds)
                 .build(),
             Cookie.builder("email", preferredUsername)
                 .withSecure(request.secure())
                 .withHttpOnly(false)
+                .withMaxAge(maxAgeInSeconds)
                 .build());
   }
-  
+
   @ApiOperation(value = "UI_ONLY", hidden = true)
   public Result insecure_login(Http.Request request) {
     List<Customer> allCustomers = Customer.getAll();
