@@ -75,6 +75,7 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -88,6 +89,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.oidc.profile.OidcProfileDefinition;
 import org.pac4j.play.java.Secure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,6 +146,7 @@ public class SessionController extends AbstractPlatformController {
   public static final String CUSTOMER_UUID = "customerUUID";
   private static final Duration FOREVER = Duration.ofSeconds(2147483647);
   public static final String FILTERED_LOGS_SCRIPT = "bin/filtered_logs.sh";
+  private static final String OIDC_TOKEN_EXPIRATION = "expiration";
 
   @Inject
   public SessionController(
@@ -434,44 +437,47 @@ public class SessionController extends AbstractPlatformController {
           BAD_REQUEST, "yb.security.oidc_feature_enhancements flag is not enabled.");
     }
 
-    String email = thirdPartyLoginHandler.getEmailFromCtx(request);
     String idToken = "";
-    String preferredUsername = "";
+    String preferredUsername = thirdPartyLoginHandler.getEmailFromCtx(request);
     Instant expirationTime = null;
     try {
       // Persist the JWT auth token in case of successful login.
       CommonProfile profile = thirdPartyLoginHandler.getProfile(request);
-      if (profile.containsAttribute("id_token")) {
-        idToken = (String) profile.getAttribute("id_token");
+      if (profile.containsAttribute(OidcProfileDefinition.ID_TOKEN)) {
+        idToken = (String) profile.getAttribute(OidcProfileDefinition.ID_TOKEN);
       }
-      if (profile.containsAttribute("preferred_username")) {
-        preferredUsername = (String) profile.getAttribute("preferred_username");
+      if (profile.containsAttribute(OidcProfileDefinition.PREFERRED_USERNAME)) {
+        preferredUsername = (String) profile.getAttribute(OidcProfileDefinition.PREFERRED_USERNAME);
       }
-      if (profile.containsAttribute("expiration")) {
-        String expTime = (String) profile.getAttribute("expiration");
-        expirationTime = Instant.parse(expTime);
+      if (profile.containsAttribute(OIDC_TOKEN_EXPIRATION)) {
+        Date expTime = (Date) profile.getAttribute(OIDC_TOKEN_EXPIRATION);
+        expirationTime = expTime.toInstant();
       }
     } catch (Exception e) {
-      // Pass
-      log.error(String.format("Failed to retrieve user profile %s", e.getMessage()));
+      throw new PlatformServiceException(
+          INTERNAL_SERVER_ERROR,
+          String.format("Failed to retrieve user profile %s", e.getMessage()));
     }
     Duration maxAgeInSeconds = Duration.ofMinutes(5L);
     if (expirationTime != null) {
-      maxAgeInSeconds = Duration.between(expirationTime, Instant.now());
+      maxAgeInSeconds = Duration.between(Instant.now(), expirationTime);
     }
+    String redirectURI = request.queryString("orig_url").orElse("/");
 
     return thirdPartyLoginHandler
-        .redirectTo(request.queryString("orig_url").orElse(null))
+        .redirectTo(redirectURI)
         .withCookies(
             Cookie.builder("jwt_token", idToken)
                 .withSecure(request.secure())
                 .withHttpOnly(false)
                 .withMaxAge(maxAgeInSeconds)
+                .withPath(redirectURI)
                 .build(),
             Cookie.builder("email", preferredUsername)
                 .withSecure(request.secure())
                 .withHttpOnly(false)
                 .withMaxAge(maxAgeInSeconds)
+                .withPath(redirectURI)
                 .build());
   }
 
