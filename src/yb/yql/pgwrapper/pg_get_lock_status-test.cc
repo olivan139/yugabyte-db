@@ -453,6 +453,15 @@ TEST_F(PgGetLockStatusTest, TestBlockedBy) {
     return lock_acquired.load();
   }, 5s * kTimeMultiplier, "select for update to unblock and execute"));
   th.join();
+
+  auto null_blockers_ct = ASSERT_RESULT(session1.conn->FetchValue<int64_t>(
+      Format("SELECT COUNT(*) FROM pg_locks WHERE ybdetails->>'blocked_by' IS NULL")));
+  auto not_null_blockers_ct = ASSERT_RESULT(session1.conn->FetchValue<int64_t>(
+      Format("SELECT COUNT(*) FROM pg_locks WHERE ybdetails->>'blocked_by' IS NOT NULL")));
+
+  EXPECT_GT(null_blockers_ct, 0);
+  EXPECT_EQ(not_null_blockers_ct, 0);
+
   ASSERT_OK(waiter_session.conn->CommitTransaction());
 }
 
@@ -496,6 +505,41 @@ TEST_F(PgGetLockStatusTest, TestLocksOfColocatedTables) {
   }
   fetched_locks.CountDown();
   thread_holder.WaitAndStop(25s * kTimeMultiplier);
+}
+
+TEST_F(PgGetLockStatusTest, ReceivesWaiterSubtransactionId) {
+  const auto table = "foo";
+  const auto locked_key = "1";
+
+  auto blocker_session = ASSERT_RESULT(Init(table, locked_key));
+
+  auto waiter = ASSERT_RESULT(Init("bar", locked_key));
+  ASSERT_OK(waiter.conn->Execute("SAVEPOINT s1"));
+  std::thread th([&waiter, &table, &locked_key] {
+    ASSERT_OK(waiter.conn->FetchFormat(
+        "SELECT * FROM $0 WHERE k=$1 FOR SHARE", table, locked_key));
+  });
+
+  // TODO(pglocks): Use flag controlling default min_txn_age or set the session variable explicitly.
+  SleepFor(10s * kTimeMultiplier);
+
+  auto waiting_subtxn_id = ASSERT_RESULT(blocker_session.conn->FetchValue<string>(Format(
+    "SELECT DISTINCT(ybdetails->>'subtransaction_id') FROM pg_locks "
+    "WHERE ybdetails->>'subtransaction_id' != '1' "
+      "AND ybdetails->>'transactionid'='$0' "
+      "AND NOT granted",
+    waiter.txn_id.ToString())));
+
+  ASSERT_OK(blocker_session.conn->CommitTransaction());
+
+  auto granted_subtxn_id = ASSERT_RESULT(blocker_session.conn->FetchValue<string>(Format(
+    "SELECT DISTINCT(ybdetails->>'subtransaction_id') FROM pg_locks "
+    "WHERE ybdetails->>'subtransaction_id' != '1' AND ybdetails->>'transactionid'='$0' AND granted",
+    waiter.txn_id.ToString())));
+
+  ASSERT_EQ(waiting_subtxn_id, granted_subtxn_id);
+
+  th.join();
 }
 
 } // namespace pgwrapper
