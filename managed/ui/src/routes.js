@@ -26,18 +26,24 @@ import Backups from './pages/Backups';
 import UniverseConsole from './pages/UniverseConsole';
 import Metrics from './pages/Metrics';
 import { NodeAgent } from './pages/NodeAgent';
+import { Troubleshoot } from './pages/Troubleshoot';
 import TableDetail from './pages/TableDetail';
 import Help from './pages/Help';
 import Profile from './pages/Profile';
 import YugawareLogs from './pages/YugawareLogs';
 import Releases from './pages/Releases';
+
 import { isDefinedNotNull, isNullOrEmpty, objToQueryParams } from './utils/ObjectUtils';
 import { Administration } from './pages/Administration';
 import ToggleFeaturesInTest from './pages/ToggleFeaturesInTest';
 import { Replication } from './pages/Replication';
 import UniverseNewView from './pages/UniverseNewView';
 import { DataCenterConfiguration } from './pages/DataCenterConfiguration';
-import { clearRbacCreds, getRbacEnabledVal, isRbacEnabled } from './redesign/features/rbac/common/RbacUtils';
+import {
+  clearRbacCreds,
+  getRbacEnabledVal,
+  isRbacEnabled
+} from './redesign/features/rbac/common/RbacUtils';
 
 /**
  * Redirects to base url if no queryParmas is set else redirects to path set in queryParam
@@ -124,7 +130,7 @@ axios.interceptors.response.use(
   (error) => {
     // skip 401 response for "/login" and "/register" endpoints
     //rbac is not loaded yet or it is enabled
-    if(getRbacEnabledVal() === null || isRbacEnabled()) return Promise.reject(error);
+    if (getRbacEnabledVal() === null || isRbacEnabled()) return Promise.reject(error);
 
     const isAllowedUrl = /.+\/(login|register)$/i.test(error.request.responseURL);
     const isUnauthorised = error.response?.status === 401;
@@ -273,6 +279,7 @@ export default (store) => {
           <Route path=":tab/:section/:uuid" component={DataCenterConfiguration} />
         </Route>
         <Route path="/nodeagent" component={NodeAgent} />
+        <Route path="/troubleshoot" component={Troubleshoot} />
         <Route path="/alerts" component={Alerts} />
         <Route path="/backups" component={Backups} />
         <Route path="/help" component={Help} />
