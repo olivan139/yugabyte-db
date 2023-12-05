@@ -3,6 +3,11 @@ import { YBTab, YBTabs, YBTabPanel } from '../../components/YBTabs/YBTabs';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, makeStyles } from '@material-ui/core';
 import { PGStatStatements } from './PGStatStatements';
+import {
+  YBM_SINGLE_REGION_INFO,
+  YBM_MULTI_REGION_INFO,
+  YBA_UNIVERSE_PRIMAY_ASYNC_DATA
+} from './MockData';
 
 const useStyles = makeStyles(() => ({
   tabLabel: {
@@ -63,7 +68,7 @@ export const TroubleshootHeader: FC<any> = () => {
           {'Hello, I am Metrics'}
         </YBTabPanel>
         <YBTabPanel value={(tab as unknown) as string} tabIndex={'PGStatStatements' as any}>
-          <PGStatStatements />
+          <PGStatStatements data={YBA_UNIVERSE_PRIMAY_ASYNC_DATA} />
         </YBTabPanel>
         <YBTabPanel value={(tab as unknown) as string} tabIndex={'SessionHistory' as any}>
           {'Hello, I am Active Session History'}

@@ -1,127 +1,134 @@
-import React, { FC, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Box, MenuItem, makeStyles } from '@material-ui/core';
-import { YBButton, YBLabel, YBSelect } from '../../components';
+import React, { useState } from 'react';
+import { useUpdateEffect } from 'react-use';
+import { Box } from '@material-ui/core';
+import { YBButton } from '../../components';
+import { formatHeaderData, getFilteredItems } from './TroubleshootUtils';
 
-const UNIVERSE_MAP = ['Universe 1', 'Universe 2'];
+import { ClusterRegionSelector } from './YBClusterRegionSelector';
+import { ZoneNodeSelector } from './YBZoneNodeSelector';
 
-const CLUSTER_MAP = ['Primary', 'Read Replica'];
+interface PGStatStatementsProps {
+  data: any;
+}
 
-const REGION_MAP = ['us-west2'];
+const INPUT_DATE_FORMAT = 'MM/dd/yyyy';
+const ALL = 'All';
+const ALL_REGIONS = 'All Regions and Clusters';
+const ALL_ZONES = 'All Zones and Nodes';
 
-const NODE_MAP = ['yb-node-1', 'yb-node-2'];
+export const PGStatStatements = ({ data }: PGStatStatementsProps) => {
+  const {
+    primaryZoneMapping,
+    asyncZoneMapping,
+    primaryClusterMapping,
+    asyncClusterMapping
+  } = formatHeaderData(data);
 
-const useStyles = makeStyles((theme) => ({
-  selectBox: {
-    minWidth: '200px'
-  }
-}));
+  const [clusterRegionItem, setClusterRegionItem] = useState(ALL_REGIONS);
+  const [zoneNodeItem, setZoneNodeItem] = useState(ALL_ZONES);
+  const [isPrimaryCluster, setIsPrimaryCluster] = useState(true);
 
-export const PGStatStatements: FC<any> = () => {
-  const { t } = useTranslation();
-  const classes = useStyles();
-  const [universe, setUniverse] = useState<string>(UNIVERSE_MAP[0]);
-  const [cluster, setCluster] = useState<string>(CLUSTER_MAP[0]);
-  const [region, setRegion] = useState<string>(REGION_MAP[0]);
-  const [node, setNode] = useState<string>(NODE_MAP[0]);
+  const [primaryZoneToNodesMap, setPrimaryZoneToNodesMap] = useState(primaryZoneMapping);
+  const [asyncZoneToNodesMap, setAsyncZoneToNodesMap] = useState(asyncZoneMapping);
+
+  const [cluster, setCluster] = useState(ALL);
+  const [region, setRegion] = useState(ALL);
+  const [zone, setZone] = useState(ALL);
+  const [node, setNode] = useState(ALL);
+
+  useUpdateEffect(() => {
+    const emptyMap = new Map();
+    if (region !== ALL || cluster !== ALL) {
+      const filteredZoneToNodesMap = getFilteredItems(
+        isPrimaryCluster ? primaryZoneMapping : asyncZoneMapping,
+        region !== ALL,
+        isPrimaryCluster,
+        region !== ALL ? region : cluster
+      );
+
+      if (region !== null && isPrimaryCluster) {
+        setPrimaryZoneToNodesMap(filteredZoneToNodesMap);
+        setAsyncZoneToNodesMap(emptyMap);
+      } else if (region !== null && !isPrimaryCluster) {
+        setPrimaryZoneToNodesMap(emptyMap);
+        setAsyncZoneToNodesMap(filteredZoneToNodesMap);
+      } else if (cluster !== null && isPrimaryCluster) {
+        setPrimaryZoneToNodesMap(filteredZoneToNodesMap);
+        setAsyncZoneToNodesMap(emptyMap);
+      } else if (cluster !== null && !isPrimaryCluster) {
+        setPrimaryZoneToNodesMap(emptyMap);
+        setAsyncZoneToNodesMap(filteredZoneToNodesMap);
+      }
+    } else {
+      setPrimaryZoneToNodesMap(primaryZoneMapping);
+      setAsyncZoneToNodesMap(asyncZoneMapping);
+    }
+  }, [region, cluster]);
+
+  const onClusterRegionSelected = (
+    isCluster: boolean,
+    isRegion: boolean,
+    selectedOption: string,
+    isPrimaryCluster: boolean
+  ) => {
+    setIsPrimaryCluster(isPrimaryCluster);
+    if (selectedOption === ALL_REGIONS) {
+      setClusterRegionItem(ALL_REGIONS);
+      setCluster(ALL);
+      setRegion(ALL);
+    }
+
+    if (isCluster || isRegion) {
+      setClusterRegionItem(selectedOption);
+      console.warn('selectedOption', selectedOption);
+
+      if (isCluster) {
+        setCluster(selectedOption);
+        setRegion(ALL);
+      }
+
+      if (isRegion) {
+        setRegion(selectedOption);
+        setCluster(ALL);
+      }
+    }
+  };
+
+  const onZoneNodeSelected = (isZone: boolean, isNode: boolean, selectedOption: string) => {
+    if (selectedOption === ALL_ZONES) {
+      setZoneNodeItem(ALL_ZONES);
+      setZone(ALL);
+      setNode(ALL);
+    }
+
+    if (isZone || isNode) {
+      setZoneNodeItem(selectedOption);
+      isZone ? setZone(selectedOption) : setNode(selectedOption);
+    }
+  };
 
   return (
     <Box display="flex" flexDirection="row" mt={2}>
-      <Box ml={2} display="flex" flexDirection="row">
-        {/* <YBLabel width="fit-content">{'Select Universe: '}</YBLabel> */}
-        <YBSelect
-          className={classes.selectBox}
-          // className={classes.select}
-          data-testid="universe-select"
-          onChange={(e) => {
-            setUniverse(e.target.value);
-          }}
-          value={universe}
-        >
-          {UNIVERSE_MAP.map((universeName) => {
-            return (
-              <MenuItem key={universeName} value={universeName}>
-                {universeName}
-              </MenuItem>
-            );
-          })}
-        </YBSelect>
+      <Box ml={2}>
+        <ClusterRegionSelector
+          selectedItem={clusterRegionItem}
+          onClusterRegionSelected={onClusterRegionSelected}
+          primaryClusterToRegionMap={primaryClusterMapping}
+          asyncClusterToRegionMap={asyncClusterMapping}
+        />
       </Box>
 
       <Box ml={2}>
-        {/* <YBLabel width="fit-content">{'Select Cluster Type: '}</YBLabel> */}
-        <YBSelect
-          className={classes.selectBox}
-          // className={classes.select}
-          data-testid="cluster-select"
-          onChange={(e) => {
-            setCluster(e.target.value);
-          }}
-          value={cluster}
-        >
-          {CLUSTER_MAP.map((clusterType) => {
-            return (
-              <MenuItem key={clusterType} value={clusterType}>
-                {clusterType}
-              </MenuItem>
-            );
-          })}
-        </YBSelect>
-      </Box>
-
-      <Box ml={2}>
-        {/* <YBLabel width="fit-content">{'Select Region: '}</YBLabel> */}
-        <YBSelect
-          className={classes.selectBox}
-          // className={classes.select}
-          data-testid="region-select"
-          onChange={(e) => {
-            setRegion(e.target.value);
-          }}
-          value={region}
-        >
-          {REGION_MAP.map((regionName) => {
-            return (
-              <MenuItem key={regionName} value={regionName}>
-                {regionName}
-              </MenuItem>
-            );
-          })}
-        </YBSelect>
-      </Box>
-
-      <Box ml={2}>
-        {/* <YBLabel width="fit-content">{'Select Node: '}</YBLabel> */}
-        <YBSelect
-          className={classes.selectBox}
-          // className={classes.select}
-          data-testid="node-select"
-          onChange={(e) => {
-            setNode(e.target.value);
-          }}
-          value={node}
-        >
-          {NODE_MAP.map((nodeName) => {
-            return (
-              <MenuItem key={nodeName} value={nodeName}>
-                {nodeName}
-              </MenuItem>
-            );
-          })}
-        </YBSelect>
+        <ZoneNodeSelector
+          selectedItem={zoneNodeItem}
+          onZoneNodeSelected={onZoneNodeSelected}
+          primaryZoneToNodesMap={primaryZoneToNodesMap}
+          asyncZoneToNodesMap={asyncZoneToNodesMap}
+        />
       </Box>
 
       <Box ml={2} mt={0.6}>
-        <YBButton
-          // className={classes.infoBannerActionButton}
-          variant="primary"
-          onClick={() => {
-            console.warn('Hello');
-          }}
-          // startIcon={<SyncProblem fontSize="large" />}
-          type="button"
-          data-testid={`ResetFormButton`}
-        >
+        <YBButton variant="primary" type="button" data-testid={`DiagnosticButton`}>
           Run Diagnostics
         </YBButton>
       </Box>
