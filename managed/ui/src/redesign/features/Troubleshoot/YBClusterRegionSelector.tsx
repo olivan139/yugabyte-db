@@ -19,9 +19,6 @@ const useStyles = makeStyles((theme) => ({
   selectBox: {
     minWidth: '250px'
   },
-  ulItem: {
-    paddingRight: '20px'
-  },
   boldText: {
     fontWeight: 500
   },
@@ -39,6 +36,9 @@ const useStyles = makeStyles((theme) => ({
     '& .MuiInput-input': {
       fontWeight: 300,
       fontSize: '14px'
+    },
+    '& .MuiInput-root': {
+      borderRadius: '8px 0px 0px 8px'
     }
   },
   icon: {
@@ -156,7 +156,7 @@ export const ClusterRegionSelector = ({
 
   return (
     <YBSelect
-      className={clsx(classes.selectBox, classes.ulItem, classes.overrideMuiInput)}
+      className={clsx(classes.selectBox, classes.overrideMuiInput)}
       data-testid="cluster-region-select"
       value={selectedItem}
     >

@@ -1,1 +1,1 @@
-export * from './TroubleshootHeader';
+export * from './TroubleshootTabs';

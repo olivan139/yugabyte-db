@@ -8,8 +8,8 @@ import { lazy, Suspense } from 'react';
 import { YBLoadingCircleIcon } from '../components/common/indicators';
 
 const TroubleshootComponent = lazy(() =>
-  import('../redesign/features/Troubleshoot/index').then(({ TroubleshootHeader }) => ({
-    default: TroubleshootHeader
+  import('../redesign/features/Troubleshoot/index').then(({ TroubleshootTabs }) => ({
+    default: TroubleshootTabs
   }))
 );
 

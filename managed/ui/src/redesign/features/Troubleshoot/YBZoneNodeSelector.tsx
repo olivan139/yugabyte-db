@@ -14,9 +14,6 @@ const useStyles = makeStyles((theme) => ({
   selectBox: {
     minWidth: '250px'
   },
-  ulItem: {
-    paddingRight: '20px'
-  },
   boldText: {
     fontWeight: 500
   },
@@ -34,6 +31,12 @@ const useStyles = makeStyles((theme) => ({
     '& .MuiInput-input': {
       fontWeight: 300,
       fontSize: '14px'
+    },
+    '& .MuiInput-root': {
+      borderRadius: '0px 8px 8px 0px'
+    },
+    '& .MuiMenu-list': {
+      maxHeight: '400px'
     }
   },
   icon: {
@@ -147,7 +150,7 @@ export const ZoneNodeSelector = ({
 
   return (
     <YBSelect
-      className={clsx(classes.selectBox, classes.ulItem, classes.overrideMuiInput)}
+      className={clsx(classes.selectBox, classes.overrideMuiInput)}
       data-testid="zone-node-select"
       value={selectedItem}
     >
