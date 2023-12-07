@@ -47,8 +47,7 @@ export const RuntimeConfigKey = {
   DEFAULT_DEV_TAGS: 'yb.universe.user_tags.dev_tags',
   SHOW_DR_XCLUSTER_CONFIG: 'yb.ui.xcluster.dr.show_xcluster_config',
   IS_GFLAG_MULTILINE_ENABLED: 'yb.ui.feature_flags.gflag_multiline_conf',
-  ENABLE_NODE_AGENT: 'yb.node_agent.client.enabled',
-  GFLAGS_ALLOW_DURING_PREFINALIZE: 'yb.gflags.allow_during_prefinalize'
+  ENABLE_NODE_AGENT: 'yb.node_agent.client.enabled'
 } as const;
 
 /**
