@@ -11,9 +11,12 @@ export const QueriesViewer = (props) => {
         <Tab eventKey="live-queries" title="Live Queries" key="live-queries">
           <LiveQueries />
         </Tab>
+        {/* <Tab eventKey="live-queries" title="Live Queries" key="live-queries">
+          <LiveQueries />
+        </Tab>
         <Tab eventKey="slow-queries" title="Slow Queries" key="slow-queries">
           <SlowQueries />
-        </Tab>
+        </Tab> */}
         {props.isPerfAdvisorEnabled && (
           <Tab
             eventKey="perf-advisor"

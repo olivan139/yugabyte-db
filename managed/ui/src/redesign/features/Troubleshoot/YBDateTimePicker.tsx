@@ -16,10 +16,10 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 interface YBDateTimePickerProps {
-  dateTimeValue: string;
+  dateTimeValue?: string;
   dateTimeLabel: string;
-  className: any;
-  onChange: (selectedValue: any) => void;
+  className?: any;
+  onChange?: (selectedValue: any) => void;
   disabled?: boolean;
 }
 

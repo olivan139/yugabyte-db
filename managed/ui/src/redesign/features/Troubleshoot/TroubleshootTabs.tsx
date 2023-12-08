@@ -8,6 +8,7 @@ import {
   YBM_MULTI_REGION_INFO,
   YBA_UNIVERSE_PRIMAY_ASYNC_DATA
 } from './MockData';
+import { TroubleshootAdvisor } from './TroubleshootAdvisor';
 
 const useStyles = makeStyles(() => ({
   tabLabel: {
@@ -74,10 +75,7 @@ export const TroubleshootTabs: FC<any> = () => {
           />
         </YBTabPanel>
         <YBTabPanel value={(tab as unknown) as string} tabIndex={'SessionHistory' as any}>
-          <TroubleshootHeader
-            data={YBM_SINGLE_REGION_INFO}
-            selectedTab={ServiceName.ACTIVE_SESSION_HISTORY}
-          />
+          <TroubleshootAdvisor data={YBM_MULTI_REGION_INFO} />
         </YBTabPanel>
       </Box>
     </Box>

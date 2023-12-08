@@ -138,6 +138,7 @@ class UniverseDetail extends Component {
     // Runtime config should by default be called at customer scope
     // If a specific universe is selected then fall back to universe scope
     const runTimeConfigUUID = this.props.uuid ?? this.props.customer?.currentCustomer?.data?.uuid;
+    console.warn('runTimeConfigUUID', runTimeConfigUUID);
     this.props.fetchRunTimeConfigs(runTimeConfigUUID);
   }
 

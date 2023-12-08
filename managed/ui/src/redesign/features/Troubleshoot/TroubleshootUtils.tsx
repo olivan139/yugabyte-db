@@ -1,6 +1,6 @@
 import { isNonEmptyArray } from '../../../utils/ObjectUtils';
 
-export const formatHeaderData = (data: any) => {
+export const formatData = (data: any) => {
   const formattedData =
     'universeDetails' in data ? formatUniverseDetails(data) : formatClusterDetails(data);
   return formattedData;

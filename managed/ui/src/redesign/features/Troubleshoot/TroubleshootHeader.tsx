@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { Box, makeStyles, IconButton, MenuItem } from '@material-ui/core';
 import { YBButton, YBSelect } from '../../components';
-import { formatHeaderData, getFilteredItems } from './TroubleshootUtils';
+import { formatData, getFilteredItems } from './TroubleshootUtils';
 
 import { ClusterRegionSelector } from './YBClusterRegionSelector';
 import { ZoneNodeSelector } from './YBZoneNodeSelector';
@@ -83,7 +83,7 @@ export const TroubleshootHeader = ({ data, selectedTab }: TroubleshootHeaderProp
     asyncZoneMapping,
     primaryClusterMapping,
     asyncClusterMapping
-  } = formatHeaderData(data);
+  } = formatData(data);
 
   const classes = useStyles();
   const [clusterRegionItem, setClusterRegionItem] = useState(ALL_REGIONS);

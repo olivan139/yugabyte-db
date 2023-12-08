@@ -1,7 +1,8 @@
+import React from 'react';
 import { Box, MenuItem, makeStyles, Divider, Typography } from '@material-ui/core';
 import { YBButton, YBLabel, YBSelect } from '../../components';
 import clsx from 'clsx';
-import treeIcon from '../../../components/metrics/images/tree-icon.svg';
+import treeIcon from '../../../../src/components/metrics/images/tree-icon.svg';
 import { MetricMeasure } from './TroubleshootHeader';
 import { useState } from 'react';
 
