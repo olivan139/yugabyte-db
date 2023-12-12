@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { ChangeEvent, useState } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { Box, makeStyles, IconButton, MenuItem } from '@material-ui/core';
 import { YBButton, YBSelect } from '../../components';
@@ -9,6 +9,7 @@ import { ZoneNodeSelector } from './YBZoneNodeSelector';
 import { MetricSplitSelector } from './MetricSplitSelector';
 import clsx from 'clsx';
 import { YBDateTimePicker } from './YBDateTimePicker';
+import { YBTimeFormats, formatDatetime } from '../../helpers/DateUtils';
 
 const useStyles = makeStyles((theme) => ({
   refreshButton: {
@@ -93,7 +94,18 @@ export const TroubleshootHeader = ({ data, selectedTab }: TroubleshootHeaderProp
   const [primaryZoneToNodesMap, setPrimaryZoneToNodesMap] = useState(primaryZoneMapping);
   const [asyncZoneToNodesMap, setAsyncZoneToNodesMap] = useState(asyncZoneMapping);
 
+  const today = new Date();
+  const currentDateTime = formatDatetime(today, YBTimeFormats.YB_DATE_TIME_TIMESTAMP);
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const previousDateTime = formatDatetime(yesterday, YBTimeFormats.YB_DATE_TIME_TIMESTAMP);
+
   const [openDateTimePicker, setOpenDateTimePicker] = useState(false);
+  const [datetimeError, setDateTimeError] = useState<string>('');
+  const [startDateTime, setStartDateTime] = useState<Date>(yesterday);
+  const [endDateTime, setEndDateTime] = useState<Date>(today);
+
   const [cluster, setCluster] = useState(ALL);
   const [region, setRegion] = useState(ALL);
   const [zone, setZone] = useState(ALL);
@@ -149,7 +161,6 @@ export const TroubleshootHeader = ({ data, selectedTab }: TroubleshootHeaderProp
 
     if (isCluster || isRegion) {
       setClusterRegionItem(selectedOption);
-      console.warn('selectedOption', selectedOption);
 
       if (isCluster) {
         setCluster(selectedOption);
@@ -175,6 +186,24 @@ export const TroubleshootHeader = ({ data, selectedTab }: TroubleshootHeaderProp
       isZone ? setZone(selectedOption) : setNode(selectedOption);
     }
   };
+
+  const onStartDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setStartDateTime(new Date(e.target.value));
+  };
+
+  const onEndDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setEndDateTime(new Date(e.target.value));
+  };
+
+  useUpdateEffect(() => {
+    if (startDateTime > endDateTime) {
+      console.warn('HAMMA');
+      setDateTimeError('Start Date is greater than end date');
+    } else {
+      setDateTimeError('');
+      // Make an API call with update timestamp
+    }
+  }, [startDateTime, endDateTime]);
 
   return (
     <>
@@ -237,10 +266,19 @@ export const TroubleshootHeader = ({ data, selectedTab }: TroubleshootHeaderProp
             {filterDuration === TIME_FILTER.CUSTOM && (
               <>
                 <Box mr={2}>
-                  <YBDateTimePicker dateTimeLabel={'End Date'} />
+                  <YBDateTimePicker
+                    dateTimeLabel={'End Date'}
+                    defaultDateTimeValue={currentDateTime}
+                    onChange={onEndDateChange}
+                    errorMsg={datetimeError}
+                  />
                 </Box>
                 <Box mr={2}>
-                  <YBDateTimePicker dateTimeLabel={'Start Date'} />
+                  <YBDateTimePicker
+                    dateTimeLabel={'Start Date'}
+                    defaultDateTimeValue={previousDateTime}
+                    onChange={onStartDateChange}
+                  />
                 </Box>
               </>
             )}

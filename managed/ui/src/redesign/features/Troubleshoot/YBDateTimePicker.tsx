@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import clsx from 'clsx';
+import { YBTimeFormats, formatDatetime } from '../../helpers/DateUtils';
+import { isNonEmptyString } from '../../../utils/ObjectUtils';
 
 const useStyles = makeStyles((theme) => ({
   container: {
@@ -16,35 +18,49 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 interface YBDateTimePickerProps {
-  dateTimeValue?: string;
+  defaultDateTimeValue: string;
   dateTimeLabel: string;
   className?: any;
-  onChange?: (selectedValue: any) => void;
+  errorMsg?: string;
+  onChange: (selectedValue: ChangeEvent<HTMLInputElement>) => void;
   disabled?: boolean;
 }
 
 export const YBDateTimePicker = ({
-  dateTimeValue,
+  defaultDateTimeValue,
   dateTimeLabel,
+  errorMsg,
   onChange,
   className,
   disabled = false
 }: YBDateTimePickerProps) => {
   const classes = useStyles();
+  const today = new Date();
+  const maxDate = formatDatetime(today, YBTimeFormats.YB_DATE_TIME_TIMESTAMP);
+
+  const oldDay = new Date(today);
+  oldDay.setDate(oldDay.getDate() - 60);
+  const minDate = formatDatetime(oldDay, YBTimeFormats.YB_DATE_TIME_TIMESTAMP);
 
   return (
     <form className={classes.container} noValidate>
       <TextField
         id="datetime-local"
-        label={dateTimeLabel ?? 'Next appointment'}
+        label={dateTimeLabel}
         type="datetime-local"
-        defaultValue={dateTimeValue ?? '2017-05-24T10:30'}
+        defaultValue={defaultDateTimeValue}
         onChange={onChange}
         className={clsx(classes.textField, className)}
         InputLabelProps={{
           shrink: true
         }}
         disabled={disabled}
+        inputProps={{
+          min: minDate,
+          max: maxDate
+        }}
+        error={isNonEmptyString(errorMsg)}
+        helperText={errorMsg}
       />
     </form>
   );
