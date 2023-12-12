@@ -361,7 +361,7 @@ ybcinbeginscan(Relation rel, int nkeys, int norderbys)
 	/* get the scan */
 	scan = RelationGetIndexScan(rel, nkeys, norderbys);
 	scan->opaque = NULL;
-	pgstat_count_index_scan(rel);
+
 	return scan;
 }
 
@@ -383,7 +383,8 @@ ybcinrescan(IndexScanDesc scan, ScanKey scankey, int nscankeys,	ScanKey orderbys
 									 scan->yb_scan_plan, scan->yb_rel_pushdown,
 									 scan->yb_idx_pushdown, scan->yb_aggrefs,
 									 scan->yb_distinct_prefixlen,
-									 scan->yb_exec_params);
+									 scan->yb_exec_params,
+									 false /* is_internal_scan */);
 	scan->opaque = ybScan;
 	if (scan->parallel_scan)
 	{
@@ -429,6 +430,9 @@ ybcingettuple(IndexScanDesc scan, ScanDirection dir)
 	if (ybscan->exec_params)
 		ybscan->exec_params->work_mem = work_mem;
 
+	if (!ybscan->is_exec_done)
+		pgstat_count_index_scan(scan->indexRelation);
+    
 	/* Special case: aggregate pushdown. */
 	if (scan->yb_aggrefs)
 	{

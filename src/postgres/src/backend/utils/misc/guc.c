@@ -2158,6 +2158,19 @@ static struct config_bool ConfigureNamesBool[] =
 	},
 
 	{
+		{"yb_test_fail_next_inc_catalog_version", PGC_USERSET,DEVELOPER_OPTIONS,
+			gettext_noop("When set, the next increment catalog version will "
+						 "fail right before it's done. This only works when "
+						 "catalog version is stored in pg_yb_catalog_version."),
+			NULL,
+			GUC_NOT_IN_SAMPLE
+		},
+		&yb_test_fail_next_inc_catalog_version,
+		false,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"force_global_transaction", PGC_USERSET, UNGROUPED,
 			gettext_noop("Forces use of global transaction table."),
 			NULL
@@ -12334,6 +12347,15 @@ check_transaction_priority_lower_bound(double *newval, void **extra, GucSource s
 		return false;
 	}
 
+	if (IsYBReadCommitted() || YBIsWaitQueueEnabled())
+	{
+		ereport(NOTICE,
+						(errmsg("priorities don't exist for read committed isolation transations, the "
+										"transaction will wait for conflicting transactions to commit before "
+										"proceeding"),
+						 errdetail("this also applies to other isolation levels if using Wait-on-Conflict "
+											"concurrency control")));
+	}
 	return true;
 }
 
@@ -12346,6 +12368,15 @@ check_transaction_priority_upper_bound(double *newval, void **extra, GucSource s
 		return false;
 	}
 
+	if (IsYBReadCommitted() || YBIsWaitQueueEnabled())
+	{
+		ereport(NOTICE,
+						(errmsg("priorities don't exist for read committed isolation transations, the "
+										"transaction will wait for conflicting transactions to commit before "
+										"proceeding"),
+						 errdetail("this also applies to other isolation levels if using Wait-on-Conflict "
+											"concurrency control")));
+	}
 	return true;
 }
 

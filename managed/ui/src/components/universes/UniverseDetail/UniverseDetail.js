@@ -1057,7 +1057,7 @@ class UniverseDetail extends Component {
                           isControl
                           accessRequiredOn={{
                             onResource: uuid,
-                            ...ApiPermissionMap.GET_UNIVERSES_BY_ID
+                            ...this.hasReadReplica(universeInfo) ? ApiPermissionMap.GET_UNIVERSES_BY_ID : ApiPermissionMap.CREATE_READ_REPLICA
                           }}
                         >
                           <YBMenuItem

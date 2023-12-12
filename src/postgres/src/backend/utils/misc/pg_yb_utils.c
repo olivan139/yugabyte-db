@@ -455,15 +455,10 @@ IsYBReadCommitted()
 bool
 YBIsWaitQueueEnabled()
 {
-#ifdef NDEBUG
-  static bool kEnableWaitQueues = false;
-#else
-	static bool kEnableWaitQueues = true;
-#endif
 	static int cached_value = -1;
 	if (cached_value == -1)
 	{
-		cached_value = YBCIsEnvVarTrueWithDefault("FLAGS_enable_wait_queues", kEnableWaitQueues);
+		cached_value = YBCIsEnvVarTrueWithDefault("FLAGS_enable_wait_queues", true);
 	}
 	return IsYugaByteEnabled() && cached_value;
 }
@@ -825,7 +820,7 @@ YBInitPostgresBackend(
 		callbacks.UnixEpochToPostgresEpoch = &YbUnixEpochToPostgresEpoch;
 		callbacks.ConstructArrayDatum = &YbConstructArrayDatum;
 		callbacks.CheckUserMap = &check_usermap;
-		YBCInitPgGate(type_table, count, callbacks, session_id);
+		YBCInitPgGate(type_table, count, callbacks, session_id, &MyProc->yb_ash_metadata);
 		YBCInstallTxnDdlHook();
 
 		/*
@@ -1287,6 +1282,8 @@ bool yb_debug_log_internal_restarts = false;
 bool yb_test_system_catalogs_creation = false;
 
 bool yb_test_fail_next_ddl = false;
+
+bool yb_test_fail_next_inc_catalog_version = false;
 
 char *yb_test_block_index_phase = "";
 
@@ -1962,11 +1959,12 @@ YBTxnDdlProcessUtility(
 	const YbDdlModeOptional ddl_mode = YbGetDdlMode(pstmt, context);
 
 	const bool is_ddl = ddl_mode.has_value;
-	if (is_ddl)
-		YBIncrementDdlNestingLevel(ddl_mode.value);
 
 	PG_TRY();
 	{
+		if (is_ddl)
+			YBIncrementDdlNestingLevel(ddl_mode.value);
+
 		if (prev_ProcessUtility)
 			prev_ProcessUtility(pstmt, queryString,
 								context, params, queryEnv,
@@ -1975,6 +1973,9 @@ YBTxnDdlProcessUtility(
 			standard_ProcessUtility(pstmt, queryString,
 									context, params, queryEnv,
 									dest, completionTag);
+
+		if (is_ddl)
+			YBDecrementDdlNestingLevel();
 	}
 	PG_CATCH();
 	{
@@ -1989,9 +1990,6 @@ YBTxnDdlProcessUtility(
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
-
-	if (is_ddl)
-		YBDecrementDdlNestingLevel();
 }
 
 static void YBCInstallTxnDdlHook() {
