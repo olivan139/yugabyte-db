@@ -16,7 +16,7 @@ Each dependency has the following fields:
   src/inline-thirdparty. This has to start with the dependency name as the first path component
   for clarity, but could be a deeper directory.
 
-To update inline third-party dependencies, modify the tag or comimt in inline_thirdparty.yml,
+To update inline third-party dependencies, modify the tag or commit in inline_thirdparty.yml,
 commit the changes, and run the following command:
 
 build-support/thirdparty_tool --sync-inline-thirdparty
