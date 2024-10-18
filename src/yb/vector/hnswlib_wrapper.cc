@@ -86,9 +86,17 @@ class HnswlibIndex :
   };
 
   // Provide access to the vector iterator
-  VectorIterator GetVectorIterator() const {
+  // VectorIterator GetVectorIterator() const {
+  //   CHECK_NOTNULL(hnsw_);
+  //   return VectorIterator(hnsw_->vectors_begin(), hnsw_->vectors_end(), options_.dimensions);
+  // }
+
+  using HnswlibVectorIterator = VectorIteratorBase<Vector, typename HNSWImpl::VectorIterator>;
+
+  // Предоставляем доступ к итератору векторов
+  HnswlibVectorIterator GetVectorIterator() const {
     CHECK_NOTNULL(hnsw_);
-    return VectorIterator(hnsw_->vectors_begin(), hnsw_->vectors_end(), options_.dimensions);
+    return HnswlibVectorIterator(hnsw_->vectors_begin(), hnsw_->vectors_end(), options_.dimensions);
   }
 
   Status Reserve(size_t num_vectors) override {
