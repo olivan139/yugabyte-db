@@ -52,6 +52,26 @@ class HnswlibIndex :
       : options_(options) {
   }
 
+  // An iterator class for the stored vectors
+  class VectorIterator {
+   public:
+    using HNSWImplIterator = typename HNSWImpl::VectorIterator;
+    VectorIterator(HNSWImplIterator begin, HNSWImplIterator end) : begin_(begin), end_(end) {}
+
+    HNSWImplIterator begin() { return begin_; }
+    HNSWImplIterator end() { return end_; }
+
+   private:
+    HNSWImplIterator begin_;
+    HNSWImplIterator end_;
+  };
+
+  // Provide access to the vector iterator
+  VectorIterator GetVectorIterator() const {
+    CHECK_NOTNULL(hnsw_);
+    return VectorIterator(hnsw_->vectors_begin(), hnsw_->vectors_end());
+  }
+
   Status Reserve(size_t num_vectors) override {
     if (hnsw_) {
       return STATUS_FORMAT(
