@@ -52,24 +52,43 @@ class HnswlibIndex :
       : options_(options) {
   }
 
-  // An iterator class for the stored vectors
+  // An iterator class for the stored vectors that handles different vector types (e.g., FloatVector, UInt8Vector)
   class VectorIterator {
    public:
+    using Scalar = typename Vector::value_type;
     using HNSWImplIterator = typename HNSWImpl::VectorIterator;
-    VectorIterator(HNSWImplIterator begin, HNSWImplIterator end) : begin_(begin), end_(end) {}
+
+    VectorIterator(HNSWImplIterator begin, HNSWImplIterator end, size_t dim)
+        : begin_(begin), end_(end), dimensions_(dim) {}
 
     HNSWImplIterator begin() { return begin_; }
     HNSWImplIterator end() { return end_; }
 
+    Vector operator*() const {
+      Vector vec(dimensions_);
+      std::memcpy(vec.data(), &(*begin_), dimensions_ * sizeof(Scalar));
+      return vec;
+    }
+
+    VectorIterator& operator++() {
+      ++begin_;
+      return *this;
+    }
+
+    bool operator!=(const VectorIterator& other) const {
+      return begin_ != other.begin_;
+    }
+
    private:
     HNSWImplIterator begin_;
     HNSWImplIterator end_;
+    size_t dimensions_;
   };
 
   // Provide access to the vector iterator
   VectorIterator GetVectorIterator() const {
     CHECK_NOTNULL(hnsw_);
-    return VectorIterator(hnsw_->vectors_begin(), hnsw_->vectors_end());
+    return VectorIterator(hnsw_->vectors_begin(), hnsw_->vectors_end(), options_.dimensions);
   }
 
   Status Reserve(size_t num_vectors) override {
