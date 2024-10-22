@@ -9,10 +9,12 @@
 #include <unordered_set>
 #include <list>
 #include <memory>
+#include <utility>
 
 namespace hnswlib {
 typedef unsigned int tableint;
 typedef unsigned int linklistsizeint;
+
 
 template<typename dist_t>
 class HierarchicalNSW : public AlgorithmInterface<dist_t> {
@@ -73,43 +75,40 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
     // Define an iterator class for the stored vectors
     class VectorIterator {
     private:
-        char* current_;      // Pointer to the current element in data_level0_memory_
-        size_t data_size_;   // Size of each vector
-        size_t size_data_per_element_;  // Full size of an element (vector + metadata)
+        tableint curr_internal_id_;
+        HierarchicalNSW * outer_;
 
     public:
         // Constructor for the iterator
-        VectorIterator(char* start, size_t data_size, size_t size_data_per_element)
-            : current_(start), data_size_(data_size), size_data_per_element_(size_data_per_element) {}
+        VectorIterator(tableint internal_id, HierarchicalNSW * outer)
+            : curr_internal_id_(internal_id),outer_(outer)  {}
+
 
         // Dereference operator to access the vector data
-        std::vector<float> operator*() {
-            std::vector<float> vec(data_size_ / sizeof(float));  // Assuming float vectors
-            // Copy vector data from the current memory location
-            std::memcpy(vec.data(), current_, data_size_);
-            return vec;
+        std::pair<const void*, labeltype> operator*() {
+            return std::make_pair(outer_->getDataByInternalId(curr_internal_id_) , outer_->getExternalLabel(curr_internal_id_));
         }
 
         // Prefix increment operator
         VectorIterator& operator++() {
-            current_ += size_data_per_element_;  // Move to the next element
+            ++curr_internal_id_;  // Move to the next element
             return *this;
         }
 
         // Equality comparison operator
         bool operator!=(const VectorIterator& other) const {
-            return current_ != other.current_;
+            return curr_internal_id_ != other.curr_internal_id_;
         }
     };
 
     // Function to return the begin iterator
     VectorIterator vectors_begin() {
-        return VectorIterator(data_level0_memory_ + offsetData_, data_size_, size_data_per_element_);
+        return VectorIterator(0, this);
     }
 
     // Function to return the end iterator
     VectorIterator vectors_end() {
-        return VectorIterator(data_level0_memory_ + max_elements_ * size_data_per_element_, data_size_, size_data_per_element_);
+        return VectorIterator(cur_element_count, this);
     }
 
 
