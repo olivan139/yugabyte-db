@@ -26,6 +26,7 @@
 #include "yb/vector/index_wrapper_base.h"
 #include "yb/vector/usearch_include_wrapper_internal.h"
 #include "yb/vector/coordinate_types.h"
+#include "yb/vector/vectorann_util.h"
 
 namespace yb::vectorindex {
 
@@ -88,14 +89,11 @@ class UsearchIndex :
     CHECK_GT(dimensions_, 0);
   }
 
-  using UsearchVectorIterator = VectorIteratorBase<Vector, typename std::vector<Vector>::iterator>;
-
-  // Stub for GetVectorIterator
-  UsearchVectorIterator GetVectorIterator() const {
-    std::vector<Vector> empty_vectors;
-    return UsearchVectorIterator(empty_vectors.begin(), empty_vectors.end(), dimensions_);
+  // No-op VectorIterator for UsearchIndex (since Usearch has no native iterator)
+  std::unique_ptr<VectorIteratorBase<Vector>> GetVectorIterator() const override {
+    return std::make_unique<NoOpVectorIterator<Vector>>();
   }
-
+  
   Status Reserve(size_t num_vectors) override {
     index_.reserve(num_vectors);
     return Status::OK();

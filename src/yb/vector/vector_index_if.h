@@ -25,6 +25,23 @@
 
 namespace yb::vectorindex {
 
+
+// Base VectorIterator class template
+template <IndexableVectorType Vector>
+class VectorIteratorBase {
+ public:
+  virtual ~VectorIteratorBase() = default;
+
+  // Dereference operator to access the vector data
+  virtual std::pair<const void*, VertexId> operator*() = 0;
+
+  // Prefix increment operator
+  virtual VectorIteratorBase& operator++() = 0;
+
+  // Equality comparison operator
+  virtual bool operator!=(const VectorIteratorBase& other) const = 0;
+};
+
 template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
 class VectorIndexReaderIf {
  public:
@@ -34,6 +51,8 @@ class VectorIndexReaderIf {
 
   virtual DistanceResult Distance(const Vector& lhs, const Vector& rhs) const = 0;
   virtual SearchResult Search(const Vector& query_vector, size_t max_num_results) const = 0;
+   // Get an iterator over the vectors in the index
+  virtual std::unique_ptr<VectorIteratorBase<Vector>> GetVectorIterator() const = 0;
 };
 
 template<IndexableVectorType Vector>
@@ -67,6 +86,7 @@ class VectorIndexIf : public VectorIndexReaderIf<Vector, DistanceResult>,
   virtual Status LoadFromFile(const std::string& path) = 0;
 
   virtual ~VectorIndexIf() = default;
+
 };
 
 template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>

@@ -14,6 +14,8 @@
 #include "yb/vector/hnswlib_wrapper.h"
 
 #include <memory>
+#include <utility>
+#include "vector_index_if.h"
 
 #pragma GCC diagnostic push
 
@@ -39,6 +41,8 @@
 namespace yb::vectorindex {
 
 namespace {
+// template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
+
 
 template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
 class HnswlibIndex :
@@ -52,51 +56,41 @@ class HnswlibIndex :
       : options_(options) {
   }
 
-  // An iterator class for the stored vectors that handles different vector types (e.g., FloatVector, UInt8Vector)
-  class VectorIterator {
-   public:
-    using Scalar = typename Vector::value_type;
-    using HNSWImplIterator = typename HNSWImpl::VectorIterator;
+  class HnswlibVectorIterator : public VectorIteratorBase<Vector> {
+  private:
+    typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator internal_iterator_;
+    typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator end_iterator_;
 
-    VectorIterator(HNSWImplIterator begin, HNSWImplIterator end, size_t dim)
-        : begin_(begin), end_(end), dimensions_(dim) {}
+  public:
+    // Constructor takes begin and end iterators from HierarchicalNSW
+    HnswlibVectorIterator(typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator begin,
+                          typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator end)
+        : internal_iterator_(begin), end_iterator_(end) {}
 
-    HNSWImplIterator begin() { return begin_; }
-    HNSWImplIterator end() { return end_; }
-
-    Vector operator*() const {
-      Vector vec(dimensions_);
-      std::memcpy(vec.data(), &(*begin_), dimensions_ * sizeof(Scalar));
-      return vec;
+    // Dereference operator
+    std::pair<const void*, VertexId> operator*() override {
+      return *internal_iterator_;
     }
 
-    VectorIterator& operator++() {
-      ++begin_;
+    // Prefix increment operator
+    VectorIteratorBase<Vector>& operator++() override {
+      ++internal_iterator_;
       return *this;
     }
 
-    bool operator!=(const VectorIterator& other) const {
-      return begin_ != other.begin_;
+    // Equality comparison operator
+    bool operator!=(const VectorIteratorBase<Vector>& other) const override {
+      const auto& other_casted = dynamic_cast<const HnswlibVectorIterator&>(other);
+      return internal_iterator_ != other_casted.internal_iterator_;
     }
-
-   private:
-    HNSWImplIterator begin_;
-    HNSWImplIterator end_;
-    size_t dimensions_;
   };
 
-  // Provide access to the vector iterator
-  // VectorIterator GetVectorIterator() const {
-  //   CHECK_NOTNULL(hnsw_);
-  //   return VectorIterator(hnsw_->vectors_begin(), hnsw_->vectors_end(), options_.dimensions);
-  // }
-
-  using HnswlibVectorIterator = VectorIteratorBase<Vector, typename HNSWImpl::VectorIterator>;
-
-  // Предоставляем доступ к итератору векторов
-  HnswlibVectorIterator GetVectorIterator() const {
-    CHECK_NOTNULL(hnsw_);
-    return HnswlibVectorIterator(hnsw_->vectors_begin(), hnsw_->vectors_end(), options_.dimensions);
+  // Override GetVectorIterator to return Hnswlib-specific iterator
+  std::unique_ptr<VectorIteratorBase<Vector>> GetVectorIterator() const override {
+     CHECK_NOTNULL(hnsw_);
+    // return std::make_unique<HnswlibVectorIterator<Vector, DistanceResult>>(
+    return std::make_unique<HnswlibVectorIterator>(
+        hnsw_->vectors_begin(), hnsw_->vectors_end());
   }
 
   Status Reserve(size_t num_vectors) override {

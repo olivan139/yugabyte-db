@@ -55,7 +55,11 @@ class ShardedVectorIndex : public VectorIndexIf<Vector, DistanceResult> {
         return v;
       }
     }
-    return Vector();  // Return an empty vector if not found.
+    return Vector() ;  // Return an empty vector if not found.
+  }
+
+  std::unique_ptr<VectorIteratorBase<Vector>> GetVectorIterator() const override {
+    return std::make_unique<ShardedVectorIterator>(indexes_);
   }
 
   // Search for the closest vectors across all shards.
@@ -95,6 +99,55 @@ class ShardedVectorIndex : public VectorIndexIf<Vector, DistanceResult> {
  private:
   std::vector<VectorIndexIfPtr<Vector, DistanceResult>> indexes_;
   std::atomic<size_t> round_robin_counter_;  // Atomic counter for thread-safe round-robin insertion
+
+  // Define ShardedVectorIterator inside ShardedVectorIndex
+  class ShardedVectorIterator : public VectorIteratorBase<Vector> {
+   public:
+    ShardedVectorIterator(const std::vector<VectorIndexIfPtr<Vector, DistanceResult>>& indexes)
+        : indexes_(indexes), current_shard_index_(0) {
+      // Initialize the iterators for each shard
+      for (const auto& index : indexes_) {
+        shard_iterators_.push_back(index->GetVectorIterator());
+      }
+      AdvanceToValidIterator();
+    }
+
+    std::pair<const void*, VertexId> operator*() override {
+      if (current_shard_index_ < shard_iterators_.size()) {
+        return **shard_iterators_[current_shard_index_];
+      }
+      throw std::out_of_range("Iterator out of range");
+    }
+
+    VectorIteratorBase<Vector>& operator++() override {
+      if (current_shard_index_ < shard_iterators_.size()) {
+        ++(*shard_iterators_[current_shard_index_]);
+        AdvanceToValidIterator();
+      }
+      return *this;
+    }
+
+    bool operator!=(const VectorIteratorBase<Vector>& other) const override {
+      const auto* other_it = dynamic_cast<const ShardedVectorIterator*>(&other);
+      if (!other_it) return true;
+      return current_shard_index_ != other_it->current_shard_index_ ||
+             shard_iterators_[current_shard_index_] != other_it->shard_iterators_[other_it->current_shard_index_];
+    }
+
+   private:
+    // Move to the next valid iterator (i.e., one that is not at the end)
+    void AdvanceToValidIterator() {
+      // Skip empty shards or shards whose iterators have reached the end
+      while (current_shard_index_ < shard_iterators_.size() &&
+             shard_iterators_[current_shard_index_] == nullptr) {
+        ++current_shard_index_;
+      }
+    }
+
+    const std::vector<VectorIndexIfPtr<Vector, DistanceResult>>& indexes_;
+    std::vector<std::unique_ptr<VectorIteratorBase<Vector>>> shard_iterators_;
+    size_t current_shard_index_;
+  };
 };
 
 }  // namespace yb::vectorindex
