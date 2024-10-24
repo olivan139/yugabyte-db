@@ -56,41 +56,54 @@ class HnswlibIndex :
       : options_(options) {
   }
 
-  class HnswlibVectorIterator : public VectorIteratorBase<Vector> {
+  class HnswlibVectorIterator : public VectorIteratorBase<Vector, DistanceResult> {
   private:
     typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator internal_iterator_;
-    typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator end_iterator_;
+    // typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator end_iterator_;
 
   public:
     // Constructor takes begin and end iterators from HierarchicalNSW
-    HnswlibVectorIterator(typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator begin,
-                          typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator end)
-        : internal_iterator_(begin), end_iterator_(end) {}
+    HnswlibVectorIterator(typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator position)
+        : internal_iterator_(position){ }
 
     // Dereference operator
-    std::pair<const void*, VertexId> operator*() override {
-      return *internal_iterator_;
+    std::pair<const Vector, VertexId> operator*() const override {
+        // Extract the pair from the internal iterator
+        auto pair_data = *internal_iterator_; // This is a std::pair<const void*, labeltype>
+        
+        // Convert the void pointer to the expected Vector type
+        const Vector* vector_ptr = static_cast<const Vector*>(pair_data.first);
+        
+        // Return the dereferenced vector and the associated label
+        return std::make_pair(*vector_ptr, pair_data.second); // Assuming pair_data.second is of type VertexId
     }
 
     // Prefix increment operator
-    VectorIteratorBase<Vector>& operator++() override {
+    VectorIteratorBase<Vector, DistanceResult>& operator++() override {
       ++internal_iterator_;
       return *this;
     }
 
     // Equality comparison operator
-    bool operator!=(const VectorIteratorBase<Vector>& other) const override {
+    bool operator!=(const VectorIteratorBase<Vector, DistanceResult>& other) const override {
       const auto& other_casted = dynamic_cast<const HnswlibVectorIterator&>(other);
       return internal_iterator_ != other_casted.internal_iterator_;
     }
   };
 
-  // Override GetVectorIterator to return Hnswlib-specific iterator
-  std::unique_ptr<VectorIteratorBase<Vector>> GetVectorIterator() const override {
-     CHECK_NOTNULL(hnsw_);
-    // return std::make_unique<HnswlibVectorIterator<Vector, DistanceResult>>(
-    return std::make_unique<HnswlibVectorIterator>(
-        hnsw_->vectors_begin(), hnsw_->vectors_end());
+  // VectorIteratorBase<Vector, DistanceResult> begin() const override {
+  std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>> begin() const override { 
+    CHECK_NOTNULL(hnsw_);
+    // return std::make_unique<HnswlibVectorIterator>(hnsw_->vectors_begin());
+    return std::make_unique<typename HnswlibIndex::HnswlibVectorIterator>(hnsw_->vectors_begin());
+
+  }
+
+  // VectorIteratorBase<Vector, DistanceResult> end() const override {
+  std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>> end() const override {
+    CHECK_NOTNULL(hnsw_);
+    // return std::make_unique<HnswlibVectorIterator>(hnsw_->vectors_end());
+    return std::make_unique<typename HnswlibIndex::HnswlibVectorIterator>(hnsw_->vectors_end());
   }
 
   Status Reserve(size_t num_vectors) override {

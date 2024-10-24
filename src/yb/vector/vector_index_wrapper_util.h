@@ -62,13 +62,18 @@ class VectorIndexReaderAdapter
     return destination_results;
   }
 
-  // Implementing the GetVectorIterator function
-  std::unique_ptr<VectorIteratorBase<DestinationVector>> GetVectorIterator() const override {
-    // Obtain the iterator from the underlying source_reader_
-    auto source_iterator = source_reader_.GetVectorIterator();
+  // Get the source iterator from the underlying source reader
+  std::unique_ptr<VectorIteratorBase<DestinationVector, DestinationDistanceResult>> begin() const override { 
+      auto source_begin_iterator = source_reader_.begin();
+    // Wrap the source iterator in a VectorIteratorAdapter
+    return std::make_unique<VectorIteratorAdapter>(std::move(source_begin_iterator));
+  }
 
-    // Create a new iterator adapter to wrap around the source iterator and cast the vector types
-    return std::make_unique<VectorIteratorAdapter>(std::move(source_iterator));
+  std::unique_ptr<VectorIteratorBase<DestinationVector, DestinationDistanceResult>> end() const override { 
+    // Get the source end iterator from the underlying source reader
+    auto source_end_iterator = source_reader_.end();
+    // Wrap the source iterator in a VectorIteratorAdapter
+    return std::make_unique<VectorIteratorAdapter>(std::move(source_end_iterator));
   }
 
 
@@ -83,29 +88,32 @@ class VectorIndexReaderAdapter
   const VectorIndexReaderIf<SourceVector, SourceDistanceResult>& source_reader_;
   
   // Adapter class to convert SourceVector iterator to DestinationVector iterator
-  class VectorIteratorAdapter : public VectorIteratorBase<DestinationVector> {
+  class VectorIteratorAdapter : public VectorIteratorBase<DestinationVector, DestinationDistanceResult> {
    public:
-    explicit VectorIteratorAdapter(std::unique_ptr<VectorIteratorBase<SourceVector>> source_iterator)
+    explicit VectorIteratorAdapter(std::unique_ptr<VectorIteratorBase<SourceVector, SourceDistanceResult>> source_iterator)
         : source_iterator_(std::move(source_iterator)) {}
 
     // Dereference operator to access the vector data
-    std::pair<const void*, VertexId> operator*() override {
+    std::pair<const DestinationVector, VertexId> operator*() const override {
       auto [source_vector_ptr, vertex_id] = *(*source_iterator_);
 
-      // Cast the SourceVector pointer to DestinationVector using vector_cast
-      // Avoid taking the address of a temporary object, create a copy first
-      casted_vector_ = vector_cast<DestinationVector>(*static_cast<const SourceVector*>(source_vector_ptr));
-      return std::make_pair(static_cast<const void*>(&casted_vector_), vertex_id);
+      // Cast the SourceVector pointer to DestinationVector using vector_cast and return it directly
+      DestinationVector temp_casted_vector = vector_cast<DestinationVector>(source_vector_ptr);
+  
+      return std::make_pair(temp_casted_vector, vertex_id);
     }
 
+
+
+
     // Prefix increment operator
-    VectorIteratorBase<DestinationVector>& operator++() override {
+    VectorIteratorBase<DestinationVector, DestinationDistanceResult>& operator++() override {
       ++(*source_iterator_);
       return *this;
     }
 
     // Equality comparison operator
-    bool operator!=(const VectorIteratorBase<DestinationVector>& other) const override {
+    bool operator!=(const VectorIteratorBase<DestinationVector, DestinationDistanceResult>& other) const override {
       const auto* other_adapter = dynamic_cast<const VectorIteratorAdapter*>(&other);
       if (!other_adapter) {
         return true; // different type
@@ -114,7 +122,7 @@ class VectorIndexReaderAdapter
     }
 
    private:
-    std::unique_ptr<VectorIteratorBase<SourceVector>> source_iterator_;
+    std::unique_ptr<VectorIteratorBase<SourceVector, SourceDistanceResult>> source_iterator_;
     DestinationVector casted_vector_; // Store the casted vector here
   };
 };

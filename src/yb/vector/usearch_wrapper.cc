@@ -26,7 +26,6 @@
 #include "yb/vector/index_wrapper_base.h"
 #include "yb/vector/usearch_include_wrapper_internal.h"
 #include "yb/vector/coordinate_types.h"
-#include "yb/vector/vectorann_util.h"
 
 namespace yb::vectorindex {
 
@@ -73,6 +72,23 @@ scalar_kind_t ConvertCoordinateKind(CoordinateKind coordinate_kind) {
 
 namespace {
 
+// No-op VectorIterator
+template <IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
+class NoOpVectorIterator : public VectorIteratorBase<Vector, DistanceResult> {
+ public:
+  std::pair<const Vector, VertexId> operator*() const override {
+    return {Vector(), VertexId{}};
+  }
+
+  VectorIteratorBase<Vector, DistanceResult>& operator++() override {
+    return *this;
+  }
+
+  bool operator!=(const VectorIteratorBase<Vector, DistanceResult>&) const override {
+    return false;  // Always the same, indicating no iteration
+  }
+};
+
 template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
 class UsearchIndex :
     public IndexWrapperBase<UsearchIndex<Vector, DistanceResult>, Vector, DistanceResult> {
@@ -89,10 +105,23 @@ class UsearchIndex :
     CHECK_GT(dimensions_, 0);
   }
 
-  // No-op VectorIterator for UsearchIndex (since Usearch has no native iterator)
-  std::unique_ptr<VectorIteratorBase<Vector>> GetVectorIterator() const override {
-    return std::make_unique<NoOpVectorIterator<Vector>>();
+  // // No-op VectorIterator for UsearchIndex (since Usearch has no native iterator)
+  // VectorIteratorBase<Vector, DistanceResult> begin() const override {
+  //   return NoOpVectorIterator<Vector, DistanceResult>();
+  // }
+
+  // VectorIteratorBase<Vector, DistanceResult> end() const override {
+  //   return NoOpVectorIterator<Vector, DistanceResult>();
+  // }
+
+  std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>> begin() const override {
+    return std::make_unique<NoOpVectorIterator<Vector, DistanceResult>>();
   }
+
+  std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>> end() const override {
+    return std::make_unique<NoOpVectorIterator<Vector, DistanceResult>>();
+  }
+
   
   Status Reserve(size_t num_vectors) override {
     index_.reserve(num_vectors);

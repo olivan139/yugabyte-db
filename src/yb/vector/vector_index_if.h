@@ -26,14 +26,22 @@
 namespace yb::vectorindex {
 
 
+template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult> class VectorIndexReaderIf;
 // Base VectorIterator class template
-template <IndexableVectorType Vector>
+template <IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
 class VectorIteratorBase {
  public:
+  using iterator_category = std::forward_iterator_tag;
+  // using value_type = std::pair<const void*, VertexId>;
+  using value_type = std::pair<const Vector, VertexId>;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type*;
+  using reference = value_type&;
+
   virtual ~VectorIteratorBase() = default;
 
   // Dereference operator to access the vector data
-  virtual std::pair<const void*, VertexId> operator*() = 0;
+  virtual value_type operator*() const = 0;
 
   // Prefix increment operator
   virtual VectorIteratorBase& operator++() = 0;
@@ -46,13 +54,17 @@ template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
 class VectorIndexReaderIf {
  public:
   using SearchResult = std::vector<VertexWithDistance<DistanceResult>>;
+  // using iterator = VectorIteratorBase<Vector, DistanceResult>;  // Define iterator type
+  using iterator = std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>>;  
 
   virtual ~VectorIndexReaderIf() = default;
 
   virtual DistanceResult Distance(const Vector& lhs, const Vector& rhs) const = 0;
   virtual SearchResult Search(const Vector& query_vector, size_t max_num_results) const = 0;
-   // Get an iterator over the vectors in the index
-  virtual std::unique_ptr<VectorIteratorBase<Vector>> GetVectorIterator() const = 0;
+  // We replaced std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>>  GetVectorIterator() method by
+  // defining begin() and end() methods to make this class iterable.
+  virtual iterator begin() const = 0;
+  virtual iterator end() const = 0;
 };
 
 template<IndexableVectorType Vector>

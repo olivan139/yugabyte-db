@@ -16,6 +16,7 @@
 
 #include <queue>
 
+#include "distance.h"
 #include "yb/common/vector_types.h"
 
 #include "yb/rocksdb/status.h"
@@ -116,29 +117,9 @@ std::vector<VertexWithDistance<DistanceResult>> BruteForcePreciseNearestNeighbor
   return result;
 }
 
-// No-op VectorIterator for Sharded Index. TODO: implement
-template <IndexableVectorType Vector>
-class NoOpVectorIterator : public VectorIteratorBase<Vector> {
- public:
-  // Dereference operator that returns an invalid/null pair
-  std::pair<const void*, VertexId> operator*() override {
-    return {nullptr, VertexId{}};
-  }
-
-  // Prefix increment does nothing
-  VectorIteratorBase<Vector>& operator++() override {
-    return *this;
-  }
-
-  // Equality comparison always returns true (indicating end of iteration)
-  bool operator!=(const VectorIteratorBase<Vector>&) const override {
-    return false;  // Always the same, indicating no iteration
-  }
-};
-
 // Returns a pointer to a merged index
 template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
-VectorIndexIf <Vector, DistanceResult> *  Merge(const VectorIndexIf  <Vector, DistanceResult>& index_a, const VectorIndexIf  <Vector, DistanceResult>& index_b) {
+VectorIndexIfPtr<Vector, DistanceResult> *  Merge(VectorIndexIfPtr<Vector, DistanceResult> index_a, VectorIndexIfPtr<Vector, DistanceResult> index_b) {
   HNSWOptions hnsw_options = {
     .dimensions = 3,  
     .max_neighbors_per_vertex = 16,
@@ -148,72 +129,21 @@ VectorIndexIf <Vector, DistanceResult> *  Merge(const VectorIndexIf  <Vector, Di
 
   auto merged_index = HnswlibIndexFactory<FloatVector, float>::Create(hnsw_options);
 
-  auto vector_iterator_a = index_a.GetVectorIterator();
+  // Get the iterators
+  auto begin_it = index_a->begin();
+  auto end_it = index_a->end();
 
-  // Step 2: Insert all elements from index_b into the copy
-  while (vector_iterator_a != nullptr) {
-    // Access the vector and its associated VertexId
-    std::pair<const void*, VertexId> vector_pair = **vector_iterator_a;
+  // Iterate over index_a and print all elements
+  while (*begin_it != *end_it) {
+      const auto& [vector, vertex_id] = **begin_it;  // Dereference twice: first for unique_ptr, then for the iterator
 
-    // Dereferencing the vector_pair
-    // const Vector vector_data =  static_cast<const Vector *>(vector_pair.first);
-    const Vector& vector_data = *reinterpret_cast<const Vector*>(vector_pair.first);
-    VertexId vertex_id = vector_pair.second;
+      // Print the vector and vertex ID
 
-    Status status = merged_index.get()->Insert(vertex_id, vector_data);  // Insert each element
-
-    // Move to the next vector
-    ++(*vector_iterator_a);
+      ++(*begin_it); // Increment the underlying iterator
   }
 
-  auto vector_iterator_b = index_b.GetVectorIterator();
-
-  // Step 2: Insert all elements from index_b into the copy
-  while (vector_iterator_b != nullptr) {
-    // Access the vector and its associated VertexId
-    std::pair<const void*, VertexId> vector_pair = **vector_iterator_b;
-
-    // Dereferencing the vector_pair
-    // const Vector vector_data =  static_cast<const Vector *>(vector_pair.first);
-    const Vector& vector_data = *reinterpret_cast<const Vector*>(vector_pair.first);
-    VertexId vertex_id = vector_pair.second;
-
+  return merged_index;
   
-    Status status = merged_index.get()->Insert(vertex_id, vector_data);  // Insert each element
-
-    // Move to the next vector
-    ++(*vector_iterator_b);
-  }
-  
-  
-  // Step 3: Return the merged index (can also return a unique_ptr if needed)
-  return merged_index.get();
 }
-
-// Returns a pointer to a merged index
-// template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
-// VectorIndexIf<Vector, DistanceResult>* Merge(const VectorIndexIf<Vector, DistanceResult>& index_a, const VectorIndexIf<Vector, DistanceResult>& index_b) {
-//     // Step 1: Create a copy of index_a
-//     auto merged_index = index_a.Clone();  // Create a deep copy of index_a
-//     auto vector_iterator_b = index_b.GetVectorIterator();
-
-//     // Step 2: Insert all elements from index_b into the copy
-//     while (vector_iterator_b && *vector_iterator_b != nullptr) {
-//         // Access the vector and its associated VertexId
-//         auto [vector_ptr, vertex_id] = **vector_iterator_b;  // Get the pair from the iterator
-
-//         // Dereference the vector_ptr (cast from void*)
-//         const Vector& vector_data = *reinterpret_cast<const Vector*>(vector_ptr);
-
-//         // Insert the vector into the merged index
-//         merged_index->Insert(vertex_id, vector_data);
-
-//         // Move to the next vector
-//         ++(*vector_iterator_b);
-//     }
-
-//     // Step 3: Return the merged index
-//     return merged_index.get();  // Return the raw pointer (if that's required)
-// }
 
 }  // namespace yb::vectorindex
