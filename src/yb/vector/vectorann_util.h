@@ -129,21 +129,15 @@ VectorIndexIfPtr<Vector, DistanceResult> *  Merge(VectorIndexIfPtr<Vector, Dista
 
   auto merged_index = HnswlibIndexFactory<FloatVector, float>::Create(hnsw_options);
 
-  // Get the iterators
-  auto begin_it = index_a->begin();
-  auto end_it = index_a->end();
+  for (const auto [vector, vertex_id] : &index_a) {
+    merged_index->Insert(vertex_id,vector);
+  }
 
-  // Iterate over index_a and print all elements
-  while (*begin_it != *end_it) {
-      const auto& [vector, vertex_id] = **begin_it;  // Dereference twice: first for unique_ptr, then for the iterator
-
-      // Print the vector and vertex ID
-
-      ++(*begin_it); // Increment the underlying iterator
+  for (const auto [vector, vertex_id] : &index_b) {
+    merged_index->Insert(vertex_id,vector);
   }
 
   return merged_index;
-  
 }
 
 }  // namespace yb::vectorindex
