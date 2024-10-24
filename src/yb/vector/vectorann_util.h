@@ -129,11 +129,11 @@ VectorIndexIfPtr<Vector, DistanceResult> *  Merge(VectorIndexIfPtr<Vector, Dista
 
   auto merged_index = HnswlibIndexFactory<FloatVector, float>::Create(hnsw_options);
 
-  for (const auto [vector, vertex_id] : &index_a) {
+  for (const auto [vector, vertex_id] : *index_a) {
     merged_index->Insert(vertex_id,vector);
   }
 
-  for (const auto [vector, vertex_id] : &index_b) {
+  for (const auto [vector, vertex_id] : *index_b) {
     merged_index->Insert(vertex_id,vector);
   }
 
