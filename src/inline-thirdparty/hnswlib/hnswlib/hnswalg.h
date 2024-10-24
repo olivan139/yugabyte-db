@@ -85,7 +85,7 @@ class HierarchicalNSW : public AlgorithmInterface<dist_t> {
 
 
         // Dereference operator to access the vector data
-        std::pair<const void*, labeltype> operator*() {
+        std::pair<const void*, labeltype> operator*() const {
             return std::make_pair(outer_->getDataByInternalId(curr_internal_id_) , outer_->getExternalLabel(curr_internal_id_));
         }
 
