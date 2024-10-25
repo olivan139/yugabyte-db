@@ -32,7 +32,6 @@ template <IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
 class VectorIteratorBase {
  public:
   using iterator_category = std::forward_iterator_tag;
-  // using value_type = std::pair<const void*, VertexId>;
   using value_type = std::pair<const Vector, VertexId>;
   using difference_type = std::ptrdiff_t;
   using pointer = value_type*;
@@ -42,6 +41,10 @@ class VectorIteratorBase {
 
   // Dereference operator to access the vector data
   virtual value_type operator*() const = 0;
+  // Arrow operator to access members of the value type
+  pointer operator->() const {
+      return &(**this);  // Uses operator* to get the reference, then takes its address
+  }
 
   // Prefix increment operator
   virtual VectorIteratorBase& operator++() = 0;
