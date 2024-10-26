@@ -41,9 +41,6 @@
 namespace yb::vectorindex {
 
 namespace {
-// template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
-
-
 template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
 class HnswlibIndex :
     public IndexWrapperBase<HnswlibIndex<Vector, DistanceResult>, Vector, DistanceResult> {
@@ -58,52 +55,45 @@ class HnswlibIndex :
 
   class HnswlibVectorIterator : public VectorIteratorBase<Vector, DistanceResult> {
   private:
-    typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator internal_iterator_;
-    // typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator end_iterator_;
+      typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator internal_iterator_;
+      int dimensions_;  // Store dimensions as a member
 
   public:
-    // Constructor takes begin and end iterators from HierarchicalNSW
-    HnswlibVectorIterator(typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator position)
-        : internal_iterator_(position){ }
+    // Constructor takes begin iterator and dimensions
+    HnswlibVectorIterator(typename hnswlib::HierarchicalNSW<DistanceResult>::VectorIterator position,
+                          int dimensions)
+        : internal_iterator_(position), dimensions_(dimensions) { }
 
-    // Dereference operator
-    std::pair<const Vector, VertexId> operator*() const override {
+    std::pair<const Vector, VertexId> operator*() const override {        
         // Extract the pair from the internal iterator
-        auto pair_data = *internal_iterator_; // This is a std::pair<const void*, labeltype>
-        
-        // Convert the void pointer to the expected Vector type
-        const Vector* vector_ptr = static_cast<const Vector*>(pair_data.first);
-        
-        // Return the dereferenced vector and the associated label
-        return std::make_pair(*vector_ptr, pair_data.second); // Assuming pair_data.second is of type VertexId
+        auto pair_data = *internal_iterator_;
+        // Convert the void pointer to the Vector type
+        Vector result_vector(dimensions_);
+        std::memcpy(result_vector.data(), pair_data.first, dimensions_ * sizeof(Scalar));
+        return std::make_pair(result_vector, pair_data.second);
     }
 
     // Prefix increment operator
     VectorIteratorBase<Vector, DistanceResult>& operator++() override {
-      ++internal_iterator_;
-      return *this;
+        ++internal_iterator_;
+        return *this;
     }
 
     // Equality comparison operator
     bool operator!=(const VectorIteratorBase<Vector, DistanceResult>& other) const override {
-      const auto& other_casted = dynamic_cast<const HnswlibVectorIterator&>(other);
-      return internal_iterator_ != other_casted.internal_iterator_;
+        const auto& other_casted = dynamic_cast<const HnswlibVectorIterator&>(other);
+        return internal_iterator_ != other_casted.internal_iterator_;
     }
   };
 
-  // VectorIteratorBase<Vector, DistanceResult> begin() const override {
-  std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>> begin() const override { 
-    CHECK_NOTNULL(hnsw_);
-    // return std::make_unique<HnswlibVectorIterator>(hnsw_->vectors_begin());
-    return std::make_unique<typename HnswlibIndex::HnswlibVectorIterator>(hnsw_->vectors_begin());
-
+  std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>> begin() const override {
+      CHECK_NOTNULL(hnsw_);
+      return std::make_unique<HnswlibVectorIterator>(hnsw_->vectors_begin(), options_.dimensions);
   }
 
-  // VectorIteratorBase<Vector, DistanceResult> end() const override {
   std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>> end() const override {
-    CHECK_NOTNULL(hnsw_);
-    // return std::make_unique<HnswlibVectorIterator>(hnsw_->vectors_end());
-    return std::make_unique<typename HnswlibIndex::HnswlibVectorIterator>(hnsw_->vectors_end());
+      CHECK_NOTNULL(hnsw_);
+      return std::make_unique<HnswlibVectorIterator>(hnsw_->vectors_end(), options_.dimensions);
   }
 
   Status Reserve(size_t num_vectors) override {
