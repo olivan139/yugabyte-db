@@ -117,9 +117,10 @@ std::vector<VertexWithDistance<DistanceResult>> BruteForcePreciseNearestNeighbor
   return result;
 }
 
-// Returns a pointer to a merged index
+// Draf of a function that returns a pointer to a merged index
 template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
-VectorIndexIfPtr<Vector, DistanceResult> *  Merge(VectorIndexIfPtr<Vector, DistanceResult> index_a, VectorIndexIfPtr<Vector, DistanceResult> index_b) {
+VectorIndexIfPtr<Vector, DistanceResult> Merge(VectorIndexIfPtr<Vector, DistanceResult> index_a, VectorIndexIfPtr<Vector, DistanceResult> index_b) {
+  //TODO we need to know the options to create a new index. Or we need to be able to make copy of one index.
   HNSWOptions hnsw_options = {
     .dimensions = 3,  
     .max_neighbors_per_vertex = 16,
@@ -127,14 +128,17 @@ VectorIndexIfPtr<Vector, DistanceResult> *  Merge(VectorIndexIfPtr<Vector, Dista
     .distance_kind = DistanceKind::kL2Squared
   };
 
-  auto merged_index = HnswlibIndexFactory<FloatVector, float>::Create(hnsw_options);
+  VectorIndexIfPtr <Vector, DistanceResult> merged_index = HnswlibIndexFactory<FloatVector, float>::Create(hnsw_options);
+  auto status_reserve = merged_index->Reserve(10); //TODO we need a way to get the size of merging index
 
-  for (const auto [vector, vertex_id] : *index_a) {
-    merged_index->Insert(vertex_id,vector);
+  for (auto it = index_a->begin(); *it != *(index_a->end()); ++(*it)) {
+    const auto & [vector, vertex_id] = **it;
+    auto status = merged_index->Insert(vertex_id, vector);
   }
 
-  for (const auto [vector, vertex_id] : *index_b) {
-    merged_index->Insert(vertex_id,vector);
+  for (auto it = index_b->begin(); *it != *(index_b->end()); ++(*it)) {
+    const auto & [vector, vertex_id] = **it;
+    auto status = merged_index->Insert(vertex_id, vector);
   }
 
   return merged_index;
