@@ -37,3 +37,4 @@ ADD_YB_LIBRARY(yb_vector
 set(YB_TEST_LINK_LIBS
     yb_vector yb_docdb_test_common yb_common_test_util ${YB_MIN_TEST_LIBS})
 ADD_YB_TEST(hnsw_util-test)
+ADD_YB_TEST(hnswlib_index_merge-test)
