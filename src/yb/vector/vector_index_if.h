@@ -57,15 +57,12 @@ template<IndexableVectorType Vector, ValidDistanceResultType DistanceResult>
 class VectorIndexReaderIf {
  public:
   using SearchResult = std::vector<VertexWithDistance<DistanceResult>>;
-  // using iterator = VectorIteratorBase<Vector, DistanceResult>;  // Define iterator type
   using iterator = std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>>;  
 
   virtual ~VectorIndexReaderIf() = default;
 
   virtual DistanceResult Distance(const Vector& lhs, const Vector& rhs) const = 0;
   virtual SearchResult Search(const Vector& query_vector, size_t max_num_results) const = 0;
-  // We replaced std::unique_ptr<VectorIteratorBase<Vector, DistanceResult>>  GetVectorIterator() method by
-  // defining begin() and end() methods to make this class iterable.
   virtual iterator begin() const = 0;
   virtual iterator end() const = 0;
 };
