@@ -169,6 +169,7 @@ Master::Master(const MasterOptions& opts)
       clone_state_manager_(CloneStateManager::Create(catalog_manager(), this, &sys_catalog())),
       snapshot_coordinator_(new MasterSnapshotCoordinator(
           catalog_manager_impl(), catalog_manager_impl(), tablet_split_manager())),
+      sys_metrics_table_updater_(new SysMetricsTableUpdater(this, 5)),
       test_async_rpc_manager_(new TestAsyncRpcManager(this, catalog_manager())),
       init_future_(init_status_.get_future()),
       opts_(opts),
@@ -203,6 +204,8 @@ Status Master::Init() {
   RETURN_NOT_OK(fs_manager_->ListTabletIds());
 
   RETURN_NOT_OK(path_handlers_->Register(web_server_.get()));
+
+  sys_metrics_table_updater_->Init();
 
   auto bound_addresses = rpc_server()->GetBoundAddresses();
   if (!bound_addresses.empty()) {
@@ -280,6 +283,7 @@ void Master::SetupAsyncClientInit(client::AsyncClientInitializer* async_client_i
 Status Master::Start() {
   RETURN_NOT_OK(StartAsync());
   RETURN_NOT_OK(WaitForCatalogManagerInit());
+  RETURN_NOT_OK(sys_metrics_table_updater_->Start());
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
   return Status::OK();
 }
@@ -410,6 +414,7 @@ void Master::Shutdown() {
     LOG_IF(DFATAL, !started) << name << " catalog manager shutdown already in progress";
     async_client_init_->Shutdown();
     cdc_state_client_init_->Shutdown();
+    sys_metrics_table_updater_->Shutdown();
     RpcAndWebServerBase::Shutdown();
     if (init_pool_) {
       init_pool_->Shutdown();

@@ -107,6 +107,7 @@ set(COMMON_SRCS
   llvm_profile_dumper.cc
   xcluster_util.cc
   ysql_utils.cc
+  sys_metrics_collector.cc
   )
 
 set(COMMON_LIBS

@@ -49,6 +49,7 @@
 #include "yb/master/master_options.h"
 #include "yb/master/master_tserver.h"
 #include "yb/master/tablet_health_manager.h"
+#include "yb/master/sys_metrics_table_updater.h"
 
 #include "yb/server/server_base.h"
 
@@ -64,6 +65,7 @@ class ServerEntryPB;
 class ThreadPool;
 class AutoFlagsManagerBase;
 class AutoFlagsConfigPB;
+class SysMetricsTableUpdater;
 
 namespace server {
 
@@ -271,6 +273,7 @@ class Master : public tserver::DbServerBase {
   std::unique_ptr<TabletSplitManager> tablet_split_manager_;
   std::unique_ptr<CloneStateManager> clone_state_manager_;
   std::unique_ptr<MasterSnapshotCoordinator> snapshot_coordinator_;
+  std::unique_ptr<SysMetricsTableUpdater> sys_metrics_table_updater_;
 
   std::unique_ptr<TestAsyncRpcManager> test_async_rpc_manager_;
 

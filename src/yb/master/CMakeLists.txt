@@ -175,7 +175,8 @@ set(MASTER_SRCS
   ysql_tablegroup_manager.cc
   ysql_tablespace_manager.cc
   ysql_ddl_handler.cc
-  ysql_ddl_verification_task.cc)
+  ysql_ddl_verification_task.cc
+  sys_metrics_table_updater.cc)
 
 set(MASTER_DEPS
   yb_common
