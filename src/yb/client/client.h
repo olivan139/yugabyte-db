@@ -317,6 +317,12 @@ class YBClient {
 
   std::unique_ptr<YBTableCreator> NewTableCreator();
 
+  // get disk usage info about all namespaces.
+  Status GetNamespaceDiskUsage(std::unordered_map<TabletId, uint64>& disk_usage_map);
+
+  // get disk space left for a specific tablet.
+  Status GetDiskSpaceLeftByTabletId(const TabletId tablet_id, uint64& disk_space_left);
+
   // set 'create_in_progress' to true if a CreateTable operation is in-progress.
   Status IsCreateTableInProgress(const YBTableName& table_name,
                                  bool *create_in_progress);

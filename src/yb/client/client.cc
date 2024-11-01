@@ -82,6 +82,7 @@
 #include "yb/gutil/map-util.h"
 #include "yb/gutil/strings/substitute.h"
 
+#include "yb/master/resource_manager.proxy.h"
 #include "yb/master/master_admin.proxy.h"
 #include "yb/master/master_backup.pb.h"
 #include "yb/master/master_backup.proxy.h"
@@ -130,6 +131,10 @@ using google::protobuf::RepeatedPtrField;
 using std::make_pair;
 using std::string;
 using std::vector;
+using yb::master::GetNamespaceDiskUsageRequestPB;
+using yb::master::GetNamespaceDiskUsageResponsePB;
+using yb::master::GetDiskSpaceLeftByTabletIdRequestPB;
+using yb::master::GetDiskSpaceLeftByTabletIdResponsePB;
 using yb::master::AddTransactionStatusTabletRequestPB;
 using yb::master::AddTransactionStatusTabletResponsePB;
 using yb::master::AlterRoleRequestPB;
@@ -610,6 +615,31 @@ void YBClient::Shutdown() {
 
 std::unique_ptr<YBTableCreator> YBClient::NewTableCreator() {
   return std::unique_ptr<YBTableCreator>(new YBTableCreator(this));
+}
+
+Status YBClient::GetNamespaceDiskUsage(std::unordered_map<TabletId, uint64>& disk_usage_map) {
+  GetNamespaceDiskUsageRequestPB req;
+  GetNamespaceDiskUsageResponsePB resp;
+
+  CALL_SYNC_LEADER_MASTER_RPC_EX(ResourceManager, req, resp, GetNamespaceDiskUsage);
+  auto tablet_disk_spaces = resp.namespaces();
+  disk_usage_map.reserve(tablet_disk_spaces.size());
+  for (const auto& tds : tablet_disk_spaces) {
+    disk_usage_map[tds.tablet_id()] = tds.disk_space_left();
+  }
+
+  return Status::OK();
+}
+
+Status YBClient::GetDiskSpaceLeftByTabletId(const TabletId tablet_id, uint64& disk_space_left) {
+  GetDiskSpaceLeftByTabletIdRequestPB req;
+  GetDiskSpaceLeftByTabletIdResponsePB resp;
+
+  req.set_tablet_id(tablet_id);
+  CALL_SYNC_LEADER_MASTER_RPC_EX(ResourceManager, req, resp, GetDiskSpaceLeftByTabletId);
+  disk_space_left = resp.disk_space_left();
+
+  return Status::OK();
 }
 
 Status YBClient::IsCreateTableInProgress(const YBTableName& table_name,

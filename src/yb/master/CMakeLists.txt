@@ -39,7 +39,7 @@ YRPC_GENERATE(
   PROTO_FILES
       master_admin.proto master_client.proto master_cluster.proto master_dcl.proto
       master_encryption.proto master_heartbeat.proto master_replication.proto
-      master_backup.proto master_test.proto
+      master_backup.proto master_test.proto resource_manager.proto
   MESSAGES_PROTO_FILES
       master_ddl.proto
   NO_SERVICE_MESSAGES_PROTO_FILES
@@ -175,7 +175,9 @@ set(MASTER_SRCS
   ysql_tablegroup_manager.cc
   ysql_tablespace_manager.cc
   ysql_ddl_handler.cc
-  ysql_ddl_verification_task.cc)
+  ysql_ddl_verification_task.cc
+  resource_manager.cc
+  master_resource_manager_service.cc)
 
 set(MASTER_DEPS
   yb_common

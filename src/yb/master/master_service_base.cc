@@ -33,6 +33,10 @@ FlushManager* MasterServiceBase::handler(FlushManager*) {
   return server_->flush_manager();
 }
 
+ResourceManager* MasterServiceBase::handler(ResourceManager*) {
+  return server_->resource_manager_iml();
+}
+
 YsqlBackendsManager* MasterServiceBase::handler(YsqlBackendsManager*) {
   return server_->ysql_backends_manager();
 }

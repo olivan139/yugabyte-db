@@ -261,7 +261,8 @@ set(TSERVER_SRCS
   xcluster_poller_id.cc
   xcluster_poller_stats.cc
   xcluster_output_client.cc
-  xcluster_write_implementations.cc)
+  xcluster_write_implementations.cc
+  resource_util_cache.cc)
 
 set(TSERVER_DEPS
   protobuf

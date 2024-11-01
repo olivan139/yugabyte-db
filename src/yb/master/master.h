@@ -49,6 +49,7 @@
 #include "yb/master/master_options.h"
 #include "yb/master/master_tserver.h"
 #include "yb/master/tablet_health_manager.h"
+#include "yb/master/resource_manager.h"
 
 #include "yb/server/server_base.h"
 
@@ -80,6 +81,7 @@ class SecureContext;
 namespace master {
 
 class MasterAutoFlagsManager;
+class ResourceManager;
 
 class Master : public tserver::DbServerBase {
  public:
@@ -110,6 +112,8 @@ class Master : public tserver::DbServerBase {
   CatalogManagerIf* catalog_manager() const;
 
   CatalogManager* catalog_manager_impl() const { return CHECK_NOTNULL(catalog_manager_.get()); }
+
+  ResourceManager* resource_manager_iml() const { return resource_manager_.get(); }
 
   TabletSplitManager& tablet_split_manager() const;
 
@@ -267,6 +271,7 @@ class Master : public tserver::DbServerBase {
   std::unique_ptr<MasterPathHandlers> path_handlers_;
   std::unique_ptr<FlushManager> flush_manager_;
   std::unique_ptr<TabletHealthManager> tablet_health_manager_;
+  std::unique_ptr<ResourceManager> resource_manager_;
   std::unique_ptr<MasterClusterHandler> master_cluster_handler_;
   std::unique_ptr<TabletSplitManager> tablet_split_manager_;
   std::unique_ptr<CloneStateManager> clone_state_manager_;

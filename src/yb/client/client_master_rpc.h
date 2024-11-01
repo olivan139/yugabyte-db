@@ -52,6 +52,14 @@ class ClientMasterRpcBase : public rpc::Rpc {
     return master_proxy_helper(static_cast<const Proxy*>(nullptr));
   }
 
+  std::shared_ptr<master::MasterResourceManagerProxy> master_resource_manager_proxy() {
+    return client_data_->master_resource_manager_proxy();
+  }
+
+  auto master_proxy_helper(const master::MasterResourceManagerProxy*) {
+    return master_resource_manager_proxy();
+  }
+
   std::shared_ptr<master::MasterAdminProxy> master_admin_proxy() {
     return client_data_->master_admin_proxy();
   }

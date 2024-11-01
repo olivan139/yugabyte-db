@@ -32,6 +32,7 @@ class MasterTabletServer : public tserver::TabletServerIf,
  public:
   MasterTabletServer(Master* master, scoped_refptr<MetricEntity> metric_entity);
   tserver::TSTabletManager* tablet_manager() override;
+  tserver::ResourceUtilCache* resource_util_cache() override;
   tserver::TabletPeerLookupIf* tablet_peer_lookup() override;
   tablet::TSLocalLockManager* ts_local_lock_maganer() override { return nullptr; }
 

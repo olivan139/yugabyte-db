@@ -2309,6 +2309,9 @@ Status TabletServiceImpl::PerformWrite(
 
   if (RandomActWithProbability(GetAtomicFlag(&FLAGS_TEST_respond_write_failed_probability))) {
     LOG(INFO) << "Responding with a failure to " << req->DebugString();
+    if (server_->resource_util_cache()) {
+      query->set_disk_space_left(server_->resource_util_cache()->GetDiskUsageLeft(req->tablet_id()));
+    }
     tablet.peer->WriteAsync(std::move(query));
     auto status = STATUS(LeaderHasNoLease, "TEST: Random failure");
     SetupErrorAndRespond(resp->mutable_error(), std::move(status), context_ptr.get());

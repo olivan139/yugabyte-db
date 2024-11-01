@@ -75,6 +75,7 @@
 #include "yb/master/master_replication.proxy.h"
 #include "yb/master/master_encryption.proxy.h"
 #include "yb/master/master_test.proxy.h"
+#include "yb/master/resource_manager.proxy.h"
 #include "yb/master/master_defaults.h"
 #include "yb/master/master_error.h"
 #include "yb/master/master_rpc.h"
@@ -267,6 +268,8 @@ YB_CLIENT_SPECIALIZE_SIMPLE(ListUDTypes);
 YB_CLIENT_SPECIALIZE_SIMPLE(TruncateTable);
 YB_CLIENT_SPECIALIZE_SIMPLE(ValidateReplicationInfo);
 YB_CLIENT_SPECIALIZE_SIMPLE(CheckIfPitrActive);
+YB_CLIENT_SPECIALIZE_SIMPLE_EX(ResourceManager, GetNamespaceDiskUsage);
+YB_CLIENT_SPECIALIZE_SIMPLE_EX(ResourceManager, GetDiskSpaceLeftByTabletId);
 YB_CLIENT_SPECIALIZE_SIMPLE_EX(Encryption, GetFullUniverseKeyRegistry);
 YB_CLIENT_SPECIALIZE_SIMPLE_EX(Admin, AddTransactionStatusTablet);
 YB_CLIENT_SPECIALIZE_SIMPLE_EX(Admin, AreNodesSafeToTakeDown);
@@ -2634,6 +2637,8 @@ void YBClient::Data::LeaderMasterDetermined(const Status& status,
 
     if (status.ok()) {
       leader_master_hostport_ = host_port;
+      master_resource_manager_proxy_ = std::make_shared<master::MasterResourceManagerProxy>(
+          proxy_cache_.get(), host_port);
       master_admin_proxy_ = std::make_shared<master::MasterAdminProxy>(
           proxy_cache_.get(), host_port);
       master_backup_proxy_ =
@@ -3065,6 +3070,11 @@ Status YBClient::Data::IsXClusterBootstrapRequired(
 HostPort YBClient::Data::leader_master_hostport() const {
   std::lock_guard l(leader_master_lock_);
   return leader_master_hostport_;
+}
+
+shared_ptr<master::MasterResourceManagerProxy> YBClient::Data::master_resource_manager_proxy() const {
+  std::lock_guard l(leader_master_lock_);
+  return master_resource_manager_proxy_;
 }
 
 shared_ptr<master::MasterAdminProxy> YBClient::Data::master_admin_proxy() const {

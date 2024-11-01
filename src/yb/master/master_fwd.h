@@ -61,6 +61,7 @@ class MasterBackupProxy;
 class MasterOptions;
 class MasterPathHandlers;
 class MasterAdminProxy;
+class MasterResourceManagerProxy;
 class MasterClientProxy;
 class MasterClusterProxy;
 class MasterDclProxy;

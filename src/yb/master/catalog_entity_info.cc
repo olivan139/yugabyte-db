@@ -1147,6 +1147,22 @@ bool NamespaceInfo::colocated() const {
   return LockForRead()->pb.colocated();
 }
 
+uint64 NamespaceInfo::disk_limit() const {
+  return LockForRead()->pb.disk_limit();
+}
+
+uint64 NamespaceInfo::ram_limit() const {
+  return LockForRead()->pb.ram_limit();
+}
+
+uint64 NamespaceInfo::cpu_limit() const {
+  return LockForRead()->pb.cpu_limit();
+}
+
+uint64 NamespaceInfo::io_limit() const {
+  return LockForRead()->pb.io_limit();
+}
+
 ::yb::master::SysNamespaceEntryPB_State NamespaceInfo::state() const {
   return LockForRead()->pb.state();
 }

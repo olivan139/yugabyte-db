@@ -32,6 +32,8 @@
 #include "yb/tserver/tserver_util_fwd.h"
 #include "yb/tserver/local_tablet_server.h"
 
+#include "yb/tserver/resource_util_cache.h"
+
 namespace yb {
 
 class MemTracker;
@@ -45,6 +47,8 @@ namespace tserver {
 class PgYCQLStatementStatsRequestPB;
 class PgYCQLStatementStatsResponsePB;
 
+class ResourceUtilCache;
+
 using CertificateReloader = std::function<Status(void)>;
 using PgConfigReloader = std::function<Status(void)>;
 
@@ -52,6 +56,7 @@ class TabletServerIf : public LocalTabletServer {
  public:
   virtual ~TabletServerIf() {}
 
+  virtual ResourceUtilCache* resource_util_cache() = 0;
   virtual TSTabletManager* tablet_manager() = 0;
   virtual TabletPeerLookupIf* tablet_peer_lookup() = 0;
   virtual tablet::TSLocalLockManager* ts_local_lock_maganer() = 0;

@@ -864,6 +864,11 @@ class NamespaceInfo : public RefCountedThreadSafe<NamespaceInfo>,
 
   bool colocated() const;
 
+  uint64 disk_limit() const;
+  uint64 ram_limit() const;
+  uint64 cpu_limit() const;
+  uint64 io_limit() const;
+
   ::yb::master::SysNamespaceEntryPB_State state() const;
 
   std::string ToString() const override;

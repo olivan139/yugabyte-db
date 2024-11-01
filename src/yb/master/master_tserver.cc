@@ -51,6 +51,10 @@ tserver::TSTabletManager* MasterTabletServer::tablet_manager() {
   return nullptr;
 }
 
+tserver::ResourceUtilCache* MasterTabletServer::resource_util_cache() {
+  return nullptr;
+}
+
 tserver::TabletPeerLookupIf* MasterTabletServer::tablet_peer_lookup() {
   return this;
 }

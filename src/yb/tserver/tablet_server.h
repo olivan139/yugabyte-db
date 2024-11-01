@@ -64,6 +64,7 @@
 #include "yb/tserver/tserver_shared_mem.h"
 #include "yb/tserver/tablet_server_interface.h"
 #include "yb/tserver/tablet_server_options.h"
+#include "yb/tserver/resource_util_cache.h"
 
 #include "yb/util/locks.h"
 #include "yb/util/net/net_util.h"
@@ -149,6 +150,7 @@ class TabletServer : public DbServerBase, public TabletServerIf {
   AutoFlagsConfigPB TEST_GetAutoFlagConfig() const;
 
   TSTabletManager* tablet_manager() override { return tablet_manager_.get(); }
+  ResourceUtilCache* resource_util_cache() override {return resource_cache_.get();}
   TabletPeerLookupIf* tablet_peer_lookup() override;
   tablet::TSLocalLockManager* ts_local_lock_maganer() override {
     return ts_local_lock_maganer_.get();
@@ -416,6 +418,9 @@ class TabletServer : public DbServerBase, public TabletServerIf {
 
   // Manager for tablets which are available on this server.
   std::unique_ptr<TSTabletManager> tablet_manager_;
+
+  // Cache for saving database limits.
+  std::unique_ptr<ResourceUtilCache> resource_cache_;
 
   // Used to forward redis pub/sub messages to the redis pub/sub handler
   yb::AtomicUniquePtr<rpc::Publisher> publish_service_ptr_;

@@ -343,6 +343,11 @@ message SysNamespaceEntryPB {
 
   optional State state = 5 [ default = UNKNOWN ];
 
+  optional uint64 disk_limit = 8;
+  optional uint64 ram_limit = 9;
+  optional uint64 cpu_limit = 10;
+  optional uint64 io_limit = 11;
+
   optional uint32 clone_request_seq_no = 7;
 }
 

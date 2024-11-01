@@ -19,6 +19,7 @@
 
 #include "yb/master/master_fwd.h"
 #include "yb/rpc/rpc_fwd.h"
+#include "yb/master/resource_manager.h"
 
 #include "yb/util/strongly_typed_bool.h"
 
@@ -39,6 +40,7 @@ struct LeaderEpoch;
 class XClusterManager;
 class MasterAutoFlagsManager;
 class MasterClusterHandler;
+class ResourceManager;
 
 // Tells HandleIn/HandleOnLeader to either acquire the lock briefly to check leadership (kFalse)
 // or to hold it throughout the handler invocation (kTrue).
@@ -127,6 +129,7 @@ class MasterServiceBase {
   MasterAutoFlagsManager* handler(MasterAutoFlagsManager*);
   CloneStateManager* handler(CloneStateManager*);
   MasterClusterHandler* handler(MasterClusterHandler*);
+  ResourceManager* handler(ResourceManager*);
 
   Master* server_;
 

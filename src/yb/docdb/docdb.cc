@@ -288,7 +288,8 @@ Status AssembleDocWriteBatch(const vector<unique_ptr<DocOperation>>& doc_write_o
                              InitMarkerBehavior init_marker_behavior,
                              std::atomic<int64_t>* monotonic_counter,
                              HybridTime* restart_read_ht,
-                             const string& table_name) {
+                             const string& table_name,
+                             int64 disk_space_left) {
   DCHECK_ONLY_NOTNULL(restart_read_ht);
   DocWriteBatch doc_write_batch(doc_db, init_marker_behavior, pending_op, monotonic_counter);
 
@@ -296,6 +297,7 @@ Status AssembleDocWriteBatch(const vector<unique_ptr<DocOperation>>& doc_write_o
     .doc_write_batch = &doc_write_batch,
     .read_operation_data = read_operation_data,
     .restart_read_ht = restart_read_ht,
+    .disk_space_left = disk_space_left,
     .schema_packing_provider = schema_packing_provider,
   };
 

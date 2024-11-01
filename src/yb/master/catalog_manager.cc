@@ -8363,6 +8363,10 @@ Status CatalogManager::CreateNamespace(const CreateNamespaceRequestPB* req,
     metadata->set_name(req->name());
     metadata->set_database_type(db_type);
     metadata->set_colocated(req->colocated());
+    metadata->set_cpu_limit(req->cpu_limit());
+    metadata->set_disk_limit(req->disk_limit());
+    metadata->set_io_limit(req->io_limit());
+    metadata->set_ram_limit(req->ram_limit());
     metadata->set_state(SysNamespaceEntryPB::PREPARING);
 
     // For namespace created for a Postgres database, save the list of tables and indexes for

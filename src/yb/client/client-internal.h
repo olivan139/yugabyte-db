@@ -44,6 +44,7 @@
 #include "yb/qlexpr/index.h"
 #include "yb/common/transaction.h"
 
+#include "yb/master/resource_manager.fwd.h"
 #include "yb/master/master_fwd.h"
 #include "yb/master/master_admin.fwd.h"
 
@@ -418,6 +419,7 @@ class YBClient::Data {
   std::shared_ptr<master::MasterReplicationProxy> master_replication_proxy() const;
   std::shared_ptr<master::MasterEncryptionProxy> master_encryption_proxy() const;
   std::shared_ptr<master::MasterTestProxy> master_test_proxy() const;
+  std::shared_ptr<master::MasterResourceManagerProxy> master_resource_manager_proxy() const;
 
   HostPort leader_master_hostport() const;
 
@@ -559,6 +561,7 @@ class YBClient::Data {
   std::shared_ptr<master::MasterReplicationProxy> master_replication_proxy_;
   std::shared_ptr<master::MasterEncryptionProxy> master_encryption_proxy_;
   std::shared_ptr<master::MasterTestProxy> master_test_proxy_;
+  std::shared_ptr<master::MasterResourceManagerProxy> master_resource_manager_proxy_;
 
   // Ref-counted RPC instance: since 'SetMasterServerProxyAsync' call
   // is asynchronous, we need to hold a reference in this class

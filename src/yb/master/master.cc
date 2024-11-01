@@ -163,6 +163,7 @@ Master::Master(const MasterOptions& opts)
       path_handlers_(new MasterPathHandlers(this)),
       flush_manager_(new FlushManager(this, catalog_manager())),
       tablet_health_manager_(new TabletHealthManager(this, catalog_manager())),
+      resource_manager_(new ResourceManager(this)),
       master_cluster_handler_(new MasterClusterHandler(catalog_manager_impl(), ts_manager_.get())),
       tablet_split_manager_(new TabletSplitManager(
           *this, metric_entity(), metric_entity_cluster())),
@@ -280,6 +281,7 @@ void Master::SetupAsyncClientInit(client::AsyncClientInitializer* async_client_i
 Status Master::Start() {
   RETURN_NOT_OK(StartAsync());
   RETURN_NOT_OK(WaitForCatalogManagerInit());
+  RETURN_NOT_OK(resource_manager_->Start());
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
   return Status::OK();
 }
@@ -291,6 +293,7 @@ Status Master::RegisterServices() {
   });
 #endif
 
+  RETURN_NOT_OK(RegisterService(FLAGS_master_svc_queue_length, MakeMasterResourceManagerService(this)));
   RETURN_NOT_OK(RegisterService(FLAGS_master_svc_queue_length, MakeMasterAdminService(this)));
   RETURN_NOT_OK(RegisterService(FLAGS_master_svc_queue_length, MakeMasterBackupService(this)));
   RETURN_NOT_OK(RegisterService(FLAGS_master_svc_queue_length, MakeMasterClientService(this)));
@@ -410,6 +413,7 @@ void Master::Shutdown() {
     LOG_IF(DFATAL, !started) << name << " catalog manager shutdown already in progress";
     async_client_init_->Shutdown();
     cdc_state_client_init_->Shutdown();
+    resource_manager_->Shutdown();
     RpcAndWebServerBase::Shutdown();
     if (init_pool_) {
       init_pool_->Shutdown();

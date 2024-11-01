@@ -56,6 +56,14 @@ class WriteQuery {
     return response_;
   }
 
+  void set_disk_space_left(uint64 disk_space_left) {
+    disk_space_left_ = disk_space_left;
+  }
+
+  uint64 get_disk_space_left() const {
+    return disk_space_left_;
+  }
+
   static void Execute(std::unique_ptr<WriteQuery> query);
 
   // The QL write operations that return rowblocks that need to be returned as RPC sidecars
@@ -207,6 +215,7 @@ class WriteQuery {
   const CoarseTimePoint deadline_;
   WriteQueryContext* const context_;
   rpc::RpcContext* const rpc_context_;
+  uint64 disk_space_left_;
 
   // Pointers to the rpc context, request and response, lifecycle
   // is managed by the rpc subsystem. These pointers maybe nullptr if the
