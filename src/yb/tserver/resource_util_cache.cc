@@ -4,6 +4,7 @@ namespace yb {
 namespace tserver {
 
 Status ResourceUtilCache::Start() {
+  DEBUG_printMap();
   RETURN_NOT_OK(Thread::Create(
       "ResourceCache", "resource_util_cache",
       std::bind(&ResourceUtilCache::ResourceUtilLoop, this), &task_thread_));

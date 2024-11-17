@@ -1052,7 +1052,13 @@ Status PgsqlWriteOperation::ApplyInsert(const DocOperationApplyData& data, IsUps
     }
   }
   bool no_limit = (data.disk_space_left == -1);
-  int64 disk_space_left = data.disk_space_left;
+  if (!no_limit && data.disk_space_left == 0) {
+    VLOG(4) << "Limit reached";
+    // TODO: create custom status for limit reach.
+    response_->set_status(PgsqlResponsePB::PGSQL_STATUS_RUNTIME_ERROR);
+    response_->set_error_message("Database has reached its limits.");
+    return Status::OK();
+  }
 
   const auto& schema = doc_read_context_->schema();
   auto pack_row = ShouldYsqlPackRow(schema.is_colocated());
@@ -1066,14 +1072,14 @@ Status PgsqlWriteOperation::ApplyInsert(const DocOperationApplyData& data, IsUps
       auto key = key_bytes.AsSlice();
       Slice packed_value(*it++);
       // checking for reaching local per user limits.
-      if (!no_limit && (disk_space_left - key_bytes.size() - packed_value.size() <= 0)) {
-        VLOG(4) << "Limit reached";
-        // TODO: create custom status for limit reach.
-        response_->set_status(PgsqlResponsePB::PGSQL_STATUS_RUNTIME_ERROR);
-        response_->set_error_message("Database has reached its limits.");
-        return Status::OK();
-      }
-      disk_space_left -= encoded_doc_key_.as_slice().size() + packed_value.size();
+//      if (!no_limit && (disk_space_left - key_bytes.size() - packed_value.size() <= 0)) {
+//        VLOG(4) << "Limit reached";
+//        // TODO: create custom status for limit reach.
+//        response_->set_status(PgsqlResponsePB::PGSQL_STATUS_RUNTIME_ERROR);
+//        response_->set_error_message("Database has reached its limits.");
+//        return Status::OK();
+//      }
+//      disk_space_left -= encoded_doc_key_.as_slice().size() + packed_value.size();
       if (pack_row &&
           packed_value.size() < dockv::PackedSizeLimit(FLAGS_ysql_packed_row_size_limit)) {
         RETURN_NOT_OK(data.doc_write_batch->SetPrimitive(
@@ -1115,18 +1121,22 @@ Status PgsqlWriteOperation::ApplyInsert(const DocOperationApplyData& data, IsUps
       }
     }
   } else if (pack_row) {
-    for (const auto &el : data.doc_write_batch->key_value_pairs()) {
-      int64 total_size = el.key.size() + el.value.size();
-      if (disk_space_left - total_size <= 0) {
-        VLOG(4) << "Limit reached";
-        // TODO: create custom status for limit reach.
-        response_->set_status(PgsqlResponsePB::PGSQL_STATUS_RUNTIME_ERROR);
-        response_->set_error_message("Database has reached its limits.");
-        return Status::OK();
-      }
-
-      disk_space_left -= total_size;
-    }
+//    for (const auto &el : data.doc_write_batch->key_value_pairs()) {
+//      if (no_limit) {
+//        break;
+//      }
+//
+//      int64 total_size = el.key.size() + el.value.size();
+//      if (disk_space_left - total_size <= 0) {
+//        VLOG(4) << "Limit reached";
+//        // TODO: create custom status for limit reach.
+//        response_->set_status(PgsqlResponsePB::PGSQL_STATUS_RUNTIME_ERROR);
+//        response_->set_error_message("Database has reached its limits.");
+//        return Status::OK();
+//      }
+//
+//      disk_space_left -= total_size;
+//    }
 
     RowPackContext pack_context(
         request_, data, VERIFY_RESULT(RowPackerData::Create(request_, *doc_read_context_)));
@@ -1155,18 +1165,22 @@ Status PgsqlWriteOperation::ApplyInsert(const DocOperationApplyData& data, IsUps
         dockv::ValueControlFields(), ValueRef(dockv::ValueEntryType::kNullLow),
         data.read_operation_data, request_.stmt_id()));
 
-    for (const auto &el : data.doc_write_batch->key_value_pairs()) {
-      int64 total_size = el.key.size() + el.value.size();
-      if (disk_space_left - total_size <= 0) {
-        VLOG(4) << "Limit reached";
-        // TODO: create custom status for limit reach.
-        response_->set_status(PgsqlResponsePB::PGSQL_STATUS_RUNTIME_ERROR);
-        response_->set_error_message("Database has reached its limits.");
-        return Status::OK();
-      }
-
-      disk_space_left -= total_size;
-    }
+//    for (const auto &el : data.doc_write_batch->key_value_pairs()) {
+//      if (no_limit) {
+//        break;
+//      }
+//
+//      int64 total_size = el.key.size() + el.value.size();
+//      if (disk_space_left - total_size <= 0) {
+//        VLOG(4) << "Limit reached";
+//        // TODO: create custom status for limit reach.
+//        response_->set_status(PgsqlResponsePB::PGSQL_STATUS_RUNTIME_ERROR);
+//        response_->set_error_message("Database has reached its limits.");
+//        return Status::OK();
+//      }
+//
+//      disk_space_left -= total_size;
+//    }
 
     for (const auto& column_value : request_.column_values()) {
       RETURN_NOT_OK(InsertColumn(data, column_value, /* pack_context=*/ nullptr));

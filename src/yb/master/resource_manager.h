@@ -31,6 +31,13 @@ class ResourceManager {
     }
   }
 
+  void DEBUG_printMapping() {
+    std::cout << "printMapping:\n";
+    for (const auto& unit : tablet_to_namespace_map_) {
+      std::cout << "tablet_id:" << unit.first << " --- " << "namespace_id:" << unit.second << "\n";
+    }
+  }
+
  private:
   void DiskUsageLoop();
   void CalculateDiskUsage();

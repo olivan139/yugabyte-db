@@ -839,7 +839,7 @@ Status WriteQuery::DoCompleteExecute(HybridTime safe_time) {
     RETURN_NOT_OK(docdb::AssembleDocWriteBatch(
         doc_ops_, read_operation_data, tablet->doc_db(), &tablet->GetSchemaPackingProvider(),
         scoped_read_operation_, &write_batch, init_marker_behavior,
-        tablet->monotonic_counter(), &restart_read_ht_, tablet->metadata()->table_name()));
+        tablet->monotonic_counter(), &restart_read_ht_, tablet->metadata()->table_name(), disk_space_left_));
 
     // For serializable isolation we don't fix read time, so could do read restart locally,
     // instead of failing whole transaction.

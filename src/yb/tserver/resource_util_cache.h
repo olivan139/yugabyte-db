@@ -16,6 +16,12 @@ class ResourceUtilCache {
 
   uint64 GetDiskUsageLeft(const TabletId& tablet_id = "");
 
+  void DEBUG_printMap() {
+    for (const auto& unit : disk_usage_map_) {
+      LOG(INFO) << "tablet_id: " << unit.first << " disk_left: " << unit.second << "\n";
+    }
+  }
+
   void Shutdown();
   ~ResourceUtilCache();
 

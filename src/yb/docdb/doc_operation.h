@@ -31,7 +31,7 @@ struct DocOperationApplyData {
   DocWriteBatch* doc_write_batch;
   ReadOperationData read_operation_data;
   HybridTime* restart_read_ht;
-  int64 disk_space_left;
+  int64 disk_space_left = -1;
   SchemaPackingProvider* schema_packing_provider;  // null okay
 
   CoarseTimePoint deadline() const {

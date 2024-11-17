@@ -524,7 +524,7 @@ message CreateNamespaceRequestPB {
   // True if the namespace is colocated.
   optional bool colocated = 7 [ default = false ];
 
-  optional uint64 disk_limit = 9 [ default = 1048576 ];
+  optional uint64 disk_limit = 9 [ default = 104857600 ];
   optional uint64 ram_limit = 10 [ default = 2 ];
   optional uint64 cpu_limit = 11 [ default = 10 ];
   optional uint64 io_limit = 12 [ default = 10 ];

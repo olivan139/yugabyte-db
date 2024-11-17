@@ -326,7 +326,7 @@ TabletServer::TabletServer(const TabletServerOptions& opts)
       opts_(opts),
       auto_flags_manager_(new TserverAutoFlagsManager(clock(), fs_manager_.get())),
       tablet_manager_(new TSTabletManager(fs_manager_.get(), this, metric_registry())),
-      resource_cache_(new ResourceUtilCache(this)),
+      resource_util_cache_(new ResourceUtilCache(this)),
       path_handlers_(new TabletServerPathHandlers(this)),
       maintenance_manager_(new MaintenanceManager(MaintenanceManager::DEFAULT_OPTIONS)),
       master_config_index_(0),
@@ -692,7 +692,7 @@ Status TabletServer::Start() {
   RETURN_NOT_OK(DbServerBase::Start());
 
   RETURN_NOT_OK(tablet_manager_->Start());
-  RETURN_NOT_OK(resource_cache_->Start());
+  RETURN_NOT_OK(resource_util_cache_->Start());
 
   RETURN_NOT_OK(heartbeater_->Start());
 
@@ -726,7 +726,7 @@ void TabletServer::Shutdown() {
     }
 
     maintenance_manager_->Shutdown();
-    resource_cache_->Shutdown();
+    resource_util_cache_->Shutdown();
     WARN_NOT_OK(heartbeater_->Stop(), "Failed to stop TS Heartbeat thread");
 
     if (FLAGS_tserver_enable_metrics_snapshotter) {

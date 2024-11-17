@@ -7,6 +7,7 @@ namespace master {
 
 Status ResourceManager::Start() {
   DEBUG_printCache();
+  DEBUG_printMapping();
   RETURN_NOT_OK(Thread::Create(
       "ResourceManager", "resource_manager_scheduler",
       std::bind(&ResourceManager::DiskUsageLoop, this), &task_thread_));
@@ -30,42 +31,40 @@ void ResourceManager::DiskUsageLoop() {
 void ResourceManager::CalculateDiskUsage() {
   std::vector<scoped_refptr<NamespaceInfo>> namespaces;
   master_->catalog_manager()->GetAllNamespaces(&namespaces, true);
-  if (!DEBUG_has_been_printed) {
-    for (const auto& unit : namespaces) {
-      LOG(INFO) << "namespace_id: " << unit->id() << " namespace_name: " << unit->name()
-                << " disk_limit: " << unit->disk_limit();
-    }
 
-    DEBUG_has_been_printed = true;
-  }
-  for (const auto& ns : namespaces) {
-    {
-      std::unique_lock lock(lock_);
-      disk_usage_map_[ns->id()] = ns->disk_limit();
-    }
-
-    std::vector tables = master_->catalog_manager()->GetTables(GetTablesMode::kRunning);
-
-    for (const auto& table : tables) {
-      if (table->GetTableType() != PGSQL_TABLE_TYPE) {
-        continue;
+  {
+    std::unique_lock lock(lock_);
+    for (const auto& ns : namespaces) {
+      if (ns->disk_limit() == 0) {
+        disk_usage_map_[ns->id()] = INT_MAX;
+      } else {
+        disk_usage_map_[ns->id()] = ns->disk_limit();
       }
 
-      {
-        std::unique_lock lock(lock_);
+      std::vector<TableInfoPtr> tables =
+          master_->catalog_manager()->GetTables(GetTablesMode::kRunning);
+
+      for (const auto& table : tables) {
+        if (table->GetTableType() != PGSQL_TABLE_TYPE) {
+          continue;
+        }
+
         auto tablets_result = table->GetTablets();
         std::vector<std::shared_ptr<TabletInfo>> tablets;
         Status s = tablets_result.MoveTo(&tablets);
         if (!s.IsOk()) {
           continue;
         }
+
         for (const auto& tablet : tablets) {
           auto drive_info = tablet->GetLeaderReplicaDriveInfo();
           if (!drive_info.ok()) {
             continue;
           }
+
           tablet_to_namespace_map_[tablet->id()] = ns->id();
-          DiskSizeBytes tablet_total_size = drive_info.get().wal_files_size + drive_info.get().sst_files_size;
+          DiskSizeBytes tablet_total_size =
+              drive_info.get().wal_files_size + drive_info.get().sst_files_size;
 
           if (disk_usage_map_[ns->id()] <= tablet_total_size) {
             disk_usage_map_[ns->id()] = 0;
